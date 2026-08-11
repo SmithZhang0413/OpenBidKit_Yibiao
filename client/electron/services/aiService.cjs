@@ -32,8 +32,6 @@ const JINLONG_DEPRECATED_MODEL_MAP = {
   'gpt-5.6-luna': 'gpt-5.6-terra',
 };
 const IMAGE_MODEL_TEST_TIMEOUT_MESSAGE = '生图模型测试超时，请检查 Base URL、API Key 或模型名称';
-const ANALYTICS_ENDPOINT = 'https://analytics.agnet.top/track';
-const ANALYTICS_PROJECT_NAME = 'yibiao-client';
 const MODEL_INFO_ENDPOINT = 'https://analytics.agnet.top/model-info';
 const OPENAI_IMAGE_PROVIDER_META = {
   jinlong: {
@@ -208,51 +206,6 @@ function createHeaders(apiKey) {
     Authorization: `Bearer ${apiKey}`,
   };
 }
-
-function trackAiRequest(app, config, payload) {
-  void Promise.resolve()
-    .then(() => {
-      const imageConfig = config.image_model || {};
-      const requestType = payload.ai_request_type || '';
-      const tokenUsage = normalizeTokenUsage(payload.usage);
-      const modelProvider = requestType === 'image'
-        ? imageConfig.provider || ''
-        : config.text_model_provider || '';
-      const modelBaseUrl = requestType === 'image'
-        ? imageConfig.base_url || ''
-        : config.base_url || '';
-      const modelEndpointHost = normalizeAnalyticsEndpointHost(modelBaseUrl);
-      const modelName = requestType === 'image'
-        ? imageConfig.model_name || ''
-        : config.model_name || '';
-      const body = {
-        projectName: ANALYTICS_PROJECT_NAME,
-        event: 'ai_request',
-        version: typeof app?.getVersion === 'function' ? app.getVersion() : '',
-        platform: process.platform,
-        arch: process.arch,
-        client_id: config.analytics_client_id || '',
-        client_created_at: config.analytics_created_at || '',
-        ai_request_type: requestType,
-        ai_model_provider: modelProvider,
-        ai_model_base_url: modelEndpointHost,
-        ai_model_name: modelName,
-        prompt_tokens: tokenUsage.prompt_tokens,
-        completion_tokens: tokenUsage.completion_tokens,
-        total_tokens: tokenUsage.total_tokens,
-        text_model_name: requestType === 'text' ? modelName : '',
-        image_model_name: requestType === 'image' ? modelName : '',
-      };
-
-      return fetch(ANALYTICS_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-    })
-    .catch(() => undefined);
-}
-
 function imageExtensionFromMime(mimeType) {
   const normalized = String(mimeType || '').toLowerCase();
   if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
@@ -1259,7 +1212,6 @@ async function chatWithConfig(app, config, request) {
 
     responseData = result.responseData;
     recordTextTokenStats(config, result.usage);
-    trackAiRequest(app, config, { ai_request_type: 'text', usage: result.usage });
     analyticsTracked = true;
     const content = result.content || '';
     writeAiLog(app, config, {
@@ -1280,7 +1232,6 @@ async function chatWithConfig(app, config, request) {
       : error.message;
     if (!analyticsTracked) {
       recordTextTokenStats(config, null);
-      trackAiRequest(app, config, { ai_request_type: 'text' });
       analyticsTracked = true;
     }
     writeAiLog(app, config, {
@@ -1348,7 +1299,6 @@ async function runAgentChatCompletionWithConfig(app, config, request) {
     });
     responseData = result?.responseData ?? null;
     recordTextTokenStats(config, result?.usage);
-    trackAiRequest(app, config, { ai_request_type: 'text', usage: result?.usage });
     analyticsTracked = true;
     writeAiLog(app, config, {
       request_id: requestId,
@@ -1365,7 +1315,6 @@ async function runAgentChatCompletionWithConfig(app, config, request) {
   } catch (error) {
     if (!analyticsTracked) {
       recordTextTokenStats(config, null);
-      trackAiRequest(app, config, { ai_request_type: 'text' });
     }
     writeAiLog(app, config, {
       request_id: requestId,
@@ -1442,8 +1391,6 @@ async function testOpenAICompatibleImageModel(app, config, provider) {
 
       throw error;
     }
-
-    trackAiRequest(app, config, { ai_request_type: 'image', usage: extractOpenAIUsage(responseData) });
     analyticsTracked = true;
     const firstImage = responseData.data?.[0] || {};
     const imageUrl = firstImage.url || '';
@@ -1478,7 +1425,6 @@ async function testOpenAICompatibleImageModel(app, config, provider) {
     };
   } catch (error) {
     if (!analyticsTracked) {
-      trackAiRequest(app, config, { ai_request_type: 'image' });
     }
     const errorMessage = error?.name === 'AbortError' ? IMAGE_MODEL_TEST_TIMEOUT_MESSAGE : error?.message || '生图模型测试失败';
     writeAiLog(app, config, {
@@ -1541,7 +1487,6 @@ async function testGoogleImageModel(app, config) {
       ),
       AI_REQUEST_TIMEOUT_MS,
     ));
-    trackAiRequest(app, config, { ai_request_type: 'image', usage: extractGoogleUsage(responseData) });
     analyticsTracked = true;
     const text = getGoogleText(responseData);
     const inlineData = getGoogleImageInlineData(responseData);
@@ -1573,7 +1518,6 @@ async function testGoogleImageModel(app, config) {
     };
   } catch (error) {
     if (!analyticsTracked) {
-      trackAiRequest(app, config, { ai_request_type: 'image' });
     }
     const errorMessage = error?.name === 'AbortError' ? IMAGE_MODEL_TEST_TIMEOUT_MESSAGE : error?.message || '生图模型测试失败';
     writeAiLog(app, config, {
@@ -1632,7 +1576,6 @@ async function generateOpenAICompatibleImage(app, config, request, provider) {
       ),
       AI_REQUEST_TIMEOUT_MS,
     ));
-    trackAiRequest(app, config, { ai_request_type: 'image', usage: extractOpenAIUsage(responseData) });
     analyticsTracked = true;
 
     const item = responseData.data?.[0] || {};
@@ -1657,7 +1600,6 @@ async function generateOpenAICompatibleImage(app, config, request, provider) {
     return { success: true, title: request.title || '', ...saved };
   } catch (error) {
     if (!analyticsTracked) {
-      trackAiRequest(app, config, { ai_request_type: 'image' });
       analyticsTracked = true;
     }
     writeAiLog(app, config, {
@@ -1711,7 +1653,6 @@ async function generateGoogleImage(app, config, request) {
       ),
       AI_REQUEST_TIMEOUT_MS,
     ));
-    trackAiRequest(app, config, { ai_request_type: 'image', usage: extractGoogleUsage(responseData) });
     analyticsTracked = true;
     const inlineData = getGoogleImageInlineData(responseData);
 
@@ -1737,7 +1678,6 @@ async function generateGoogleImage(app, config, request) {
     return { success: true, title: request.title || '', ...saved };
   } catch (error) {
     if (!analyticsTracked) {
-      trackAiRequest(app, config, { ai_request_type: 'image' });
       analyticsTracked = true;
     }
     writeAiLog(app, config, {

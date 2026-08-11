@@ -4,7 +4,6 @@ const crypto = require('node:crypto');
 const { dialog } = require('electron');
 const { createPiRuntimeService } = require('./pi/piRuntimeService.cjs');
 const { buildPiSelfCheckReportMarkdown } = require('./pi/piSelfCheckService.cjs');
-const { createAgentErrorReporter } = require('./agent/agentErrorReporter.cjs');
 const { resolveAgentAbortReason } = require('./agent/agentInterruption.cjs');
 const {
   deletePersistentAgentTask,
@@ -140,7 +139,6 @@ function normalizeSelfCheckResult(rawResult = {}) {
 
 // 协调唯一 Pi Agent 实例，并保持所有智能体任务共用同一条 FIFO 队列。
 function createAgentService({ app, configStore, aiService, licenseService, autoConfirmationService }) {
-  const agentErrorReporter = createAgentErrorReporter({ app, configStore, licenseService });
   const listeners = new Set();
   const monitorListeners = new Set();
   const questionListeners = new Set();
@@ -414,13 +412,6 @@ function createAgentService({ app, configStore, aiService, licenseService, autoC
             entry.resolve(normalizeRunResult(rawResult));
           } catch (error) {
             const normalizedError = normalizeRunError(error);
-            if (normalizedError?.code !== 'AGENT_DISCONNECTED') {
-              agentErrorReporter.reportFailure({
-                payload: entry.payload,
-                error: normalizedError,
-                userTaskContext: resolveUserTaskContext(entry.userTaskContextProvider),
-              });
-            }
             entry.reject(normalizedError);
           } finally {
             activeEntry = null;
@@ -619,7 +610,6 @@ function createAgentService({ app, configStore, aiService, licenseService, autoC
     questionListeners.clear();
     monitorListeners.clear();
     clearPendingMonitorEvents();
-    agentErrorReporter.close();
     const error = createAgentDisconnectedError();
     while (queue.length) {
       const entry = queue.shift();

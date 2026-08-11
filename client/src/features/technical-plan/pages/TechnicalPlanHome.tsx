@@ -8,7 +8,6 @@ import ContentEditPage from './ContentEditPage';
 import { TemplatePreview } from '../../export-format/pages/ExportFormatPage';
 import { useTechnicalPlanWorkflow } from '../hooks/useTechnicalPlanWorkflow';
 import { getBidAnalysisTasks } from '../services/bidAnalysisWorkflow';
-import { trackPageView } from '../../../shared/analytics/analytics';
 import { FloatingToolbar, ToolbarArrowLeftIcon, ToolbarArrowRightIcon, ToolbarDocumentIcon, useToast } from '../../../shared/ui';
 import type { BackgroundTaskState, BidAnalysisTasks, ContentGenerationOptions, GlobalFactGroupState, SaveOutlineRequest, SaveOutlineSelectionRequest, TechnicalPlanState, TechnicalPlanStep, TechnicalPlanWorkflowKind } from '../types';
 import { DEFAULT_OUTLINE_WORD_CONTROL_OPTIONS } from '../../../shared/types';
@@ -534,8 +533,6 @@ function TechnicalPlanHome({ workflowKind, registerLeaveGuard, onSectionChange }
 
   useEffect(() => {
     if (!hydrated) return;
-
-    trackPageView(`${workflowKind}/${state.step}`);
   }, [hydrated, state.step, workflowKind]);
 
   useEffect(() => {
