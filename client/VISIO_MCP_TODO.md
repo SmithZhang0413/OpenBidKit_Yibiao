@@ -27,13 +27,14 @@
   - 验证：4 个 CJS 文件通过 `node --check`；3 项真实 STDIO MCP 协议测试通过；`npm run build` 通过。
   - 依赖：固定使用 `@modelcontextprotocol/sdk@1.30.0`；`npm audit` 报告 32 个仓库依赖问题，未发现该 SDK 引入的直接公告项，不在本模块执行破坏性升级。
 
-- [ ] M02：DiagramPlan、布局转换与独立 VSDX/PNG 生成功能
+- [x] M02：DiagramPlan、布局转换与独立 VSDX/PNG 生成功能
   - 定义版本化 DiagramPlan Schema 和单次输出边界校验。
   - 将语义节点、分组和连线转换为确定性的 Visio 绘图命令。
   - 通过批量绘图、批量连线、保存和导出完成独立生成流程。
   - 使用临时版本目录，全部成功后再发布产物。
   - 提供不依赖 Renderer、IPC、SQLite 的独立运行入口和模拟测试。
-  - 验证：语法检查、布局/映射/失败清理测试、项目构建；可用环境下执行真实 Visio 冒烟。
+  - 验证：6 个 M02 CJS 文件通过 `node --check`；M01/M02 共 9 项测试通过；`npm run build` 通过。
+  - 真实冒烟：Python 3.14.7 + visio-mcp 0.1.2 + Microsoft Visio 成功生成 6 节点、6 连线的中文流程图，产出 34,296 字节 VSDX 和 30,291 字节 PNG，完成后打开文档数为 0。
 
 - [ ] M03：VisioDiagramStore、SQLite 迁移与工作区产物管理
 - [ ] M04：taskService 后台任务、进度、取消与恢复

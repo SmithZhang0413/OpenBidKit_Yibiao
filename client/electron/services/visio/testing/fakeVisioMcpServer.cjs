@@ -35,6 +35,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description: '返回工具错误',
       inputSchema: { type: 'object', properties: {} },
     },
+    {
+      name: 'soft_fail',
+      description: '以普通 JSON 返回工具错误',
+      inputSchema: { type: 'object', properties: {} },
+    },
   ],
 }));
 
@@ -50,6 +55,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
   if (name === 'fail') {
     return { isError: true, content: [{ type: 'text', text: '模拟 Visio 工具失败' }] };
+  }
+  if (name === 'soft_fail') {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: '模拟软错误' }) }] };
   }
   return { isError: true, content: [{ type: 'text', text: `未知工具：${name}` }] };
 });

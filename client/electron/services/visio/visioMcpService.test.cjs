@@ -44,7 +44,7 @@ test('VisioMcpService completes the MCP lifecycle and serializes tool calls', as
   assert.equal(started.server.name, 'yibiao-fake-visio-mcp');
 
   const tools = await service.listTools();
-  assert.deepEqual(tools.map((tool) => tool.name), ['echo', 'delay', 'fail']);
+  assert.deepEqual(tools.map((tool) => tool.name), ['echo', 'delay', 'fail', 'soft_fail']);
 
   const echo = await service.callTool('echo', { text: '中文路径与内容' });
   assert.equal(echo.content[0].text, '中文路径与内容');
@@ -63,6 +63,10 @@ test('VisioMcpService completes the MCP lifecycle and serializes tool calls', as
   await assert.rejects(
     service.callTool('fail'),
     (error) => error.code === 'VISIO_MCP_TOOL_ERROR' && error.message.includes('模拟 Visio 工具失败'),
+  );
+  await assert.rejects(
+    service.callTool('soft_fail'),
+    (error) => error.code === 'VISIO_MCP_TOOL_ERROR' && error.message.includes('模拟软错误'),
   );
   await assert.rejects(
     service.callTool('delay', { milliseconds: 200 }, { timeoutMs: 20 }),

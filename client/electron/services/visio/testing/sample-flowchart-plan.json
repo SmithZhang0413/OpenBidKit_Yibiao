@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "title": "投标文件审批流程",
+  "diagram_type": "flowchart",
+  "page": {
+    "name": "审批流程",
+    "orientation": "portrait"
+  },
+  "groups": [],
+  "nodes": [
+    { "id": "start", "text": "开始", "kind": "start", "style_role": "primary" },
+    { "id": "prepare", "text": "编制投标文件", "kind": "process" },
+    { "id": "review", "text": "内部评审", "kind": "decision", "style_role": "decision" },
+    { "id": "approve", "text": "批准并盖章", "kind": "process" },
+    { "id": "revise", "text": "修改完善", "kind": "process", "style_role": "external" },
+    { "id": "end", "text": "提交投标文件", "kind": "end", "style_role": "primary" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "prepare" },
+    { "id": "e2", "from": "prepare", "to": "review" },
+    { "id": "e3", "from": "review", "to": "approve", "label": "通过", "kind": "conditional" },
+    { "id": "e4", "from": "review", "to": "revise", "label": "不通过", "kind": "conditional" },
+    { "id": "e5", "from": "revise", "to": "prepare" },
+    { "id": "e6", "from": "approve", "to": "end" }
+  ],
+  "notes": []
+}

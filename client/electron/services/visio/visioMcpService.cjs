@@ -45,6 +45,20 @@ function describeToolError(result) {
   return compactMessage(text || 'Visio MCP 工具执行失败');
 }
 
+function findDeclaredToolError(result) {
+  const texts = (Array.isArray(result?.content) ? result.content : [])
+    .filter((item) => item?.type === 'text')
+    .map((item) => item.text)
+    .filter(Boolean);
+  for (const text of texts) {
+    try {
+      const payload = JSON.parse(text);
+      if (payload?.error) return compactMessage(payload.error);
+    } catch {}
+  }
+  return '';
+}
+
 function publicRuntimeStatus(runtime) {
   if (!runtime) return null;
   return {
@@ -245,8 +259,9 @@ function createVisioMcpService({
             onprogress: onProgress,
           },
         );
-        if (result?.isError) {
-          const error = createServiceError('VISIO_MCP_TOOL_ERROR', describeToolError(result));
+        const declaredError = findDeclaredToolError(result);
+        if (result?.isError || declaredError) {
+          const error = createServiceError('VISIO_MCP_TOOL_ERROR', declaredError || describeToolError(result));
           error.result = result;
           throw error;
         }
