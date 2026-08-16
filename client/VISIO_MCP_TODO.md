@@ -47,7 +47,12 @@
   - AbortSignal 同时覆盖 AI 排队/在途请求和 Visio MCP 绘制；取消状态可区分，上一版有效产物保持不变。
   - 应用中断后，残留 running 任务恢复为可重试 error；支持取消任务和重置前等待异步清理。
   - 验证：4 个 M04 CJS 文件通过 node --check；5 项 M04 专项测试和 M01/M02 共 14 项回归测试通过；M03 Electron SQLite 冒烟通过；npm run build 通过。
-- [ ] M05：IPC、preload、共享类型与组件自检接口
+- [x] M05：IPC、preload、共享类型与组件自检接口
+  - Main 原生装配 VisioMcpService、Renderer、Store 与 taskService，并在退出时关闭 MCP 子进程。
+  - 新增工作区、计划、步骤、产物打开、组件状态/自检/重启以及两类任务启动/取消 IPC。
+  - preload 与 window.yibiao 类型同步，新增 DiagramPlan、任务、产物、组件状态和 Runtime 配置共享类型。
+  - user_config.json 支持 bundled/custom Visio MCP Runtime 配置，设置页保存其他配置时会完整保留。
+  - 验证：6 个 M05 CJS 文件通过 node --check；4 项 M05 专项测试及 M01-M05 共 18 项回归通过；Electron SQLite 冒烟及 npm run build 通过。
 - [ ] M06：菜单、路由和 Visio 三步式前端页面
 - [ ] M07：计划编辑、预览、工具条、Toast 与设置状态卡
 - [ ] M08：Windows Sidecar 打包、Analytics 映射和端到端验收

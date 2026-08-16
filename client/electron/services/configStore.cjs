@@ -258,6 +258,13 @@ const defaultConfig = {
     ...defaultImageModelProfiles.jinlong,
   },
   image_model_profiles: defaultImageModelProfiles,
+  visio_mcp: {
+    mode: 'bundled',
+    command: '',
+    args: [],
+    cwd: '',
+    env: {},
+  },
   components: {
     file_parser: {
       provider: 'local',
@@ -673,6 +680,22 @@ function normalizeExportFormat(source) {
   };
 }
 
+function normalizeVisioMcpConfig(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const environment = source.env && typeof source.env === 'object'
+    ? Object.fromEntries(Object.entries(source.env)
+      .filter(([, item]) => item !== undefined && item !== null)
+      .map(([key, item]) => [String(key), String(item)]))
+    : {};
+  return {
+    mode: source.mode === 'custom' ? 'custom' : 'bundled',
+    command: String(source.command || '').trim(),
+    args: Array.isArray(source.args) ? source.args.map((item) => String(item)) : [],
+    cwd: String(source.cwd || '').trim(),
+    env: environment,
+  };
+}
+
 function normalizeConfig(config) {
   const source = config || {};
   const hasTextProvider = Object.prototype.hasOwnProperty.call(source, 'text_model_provider');
@@ -720,6 +743,7 @@ function normalizeConfig(config) {
     request_mode: activeTextProfile.request_mode,
     image_model: activeImageProfile,
     image_model_profiles: imageModelProfiles,
+    visio_mcp: normalizeVisioMcpConfig(source.visio_mcp),
     components: normalizeComponentsConfig(source.components),
     update_channel: normalizeUpdateChannel(source.update_channel),
     gpu_hardware_acceleration_enabled: gpuHardwareAccelerationEnabled,
@@ -808,6 +832,10 @@ function createConfigStore(app) {
           image_model_profiles: {
             ...currentConfig.image_model_profiles,
             ...(config && config.image_model_profiles ? config.image_model_profiles : {}),
+          },
+          visio_mcp: {
+            ...currentConfig.visio_mcp,
+            ...(config && config.visio_mcp ? config.visio_mcp : {}),
           },
           agent_mode_scenarios: {
             ...currentConfig.agent_mode_scenarios,

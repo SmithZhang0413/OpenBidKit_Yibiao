@@ -45,6 +45,18 @@ function registerTaskIpc({ taskService }) {
     taskService.subscribe(event.sender);
     return taskService.startDuplicateAnalysis(payload);
   });
+  ipcMain.handle('tasks:start-visio-plan-generation', (event, payload) => {
+    taskService.subscribe(event.sender);
+    return taskService.startVisioPlanGeneration(payload);
+  });
+  ipcMain.handle('tasks:start-visio-rendering', (event, payload) => {
+    taskService.subscribe(event.sender);
+    return taskService.startVisioRendering(payload);
+  });
+  ipcMain.handle('tasks:cancel-visio-task', (event, type) => {
+    taskService.subscribe(event.sender);
+    return taskService.cancelVisioTask(type);
+  });
   ipcMain.handle('tasks:get-active', (event) => {
     taskService.subscribe(event.sender);
     return taskService.getActiveTasks();

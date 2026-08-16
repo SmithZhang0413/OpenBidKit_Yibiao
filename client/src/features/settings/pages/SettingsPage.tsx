@@ -697,6 +697,13 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
       request_mode: activeTextProfile.request_mode,
       image_model: activeImageProfile,
       image_model_profiles: imageModelProfiles,
+      visio_mcp: savedConfig?.visio_mcp || {
+        mode: 'bundled',
+        command: '',
+        args: [],
+        cwd: '',
+        env: {},
+      },
       components: componentsFromState(state.components),
       agent_mode_scenarios: options.includeAgentScenarios ? state.agentModeScenarios : persistedAgentModeScenarios,
       update_channel: state.general.update_channel,

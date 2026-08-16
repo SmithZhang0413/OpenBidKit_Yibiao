@@ -50,6 +50,7 @@ export type {
   TextModelProvider,
   TextModelProfiles,
   UpdateChannel,
+  VisioMcpRuntimeConfig,
 } from './config';
 export type { AppMenuItem, SectionId } from './navigation';
 export type {
@@ -102,3 +103,23 @@ export type {
   RejectionFindingType,
   RejectionResultTab,
 } from '../../features/rejection-check/types';
+export type {
+  VisioArtifactManifest,
+  VisioArtifactManifestPreview,
+  VisioDiagramArtifact,
+  VisioDiagramEdge,
+  VisioDiagramGroup,
+  VisioDiagramNode,
+  VisioDiagramPlan,
+  VisioDiagramRequirements,
+  VisioDiagramState,
+  VisioDiagramStep,
+  VisioDiagramTaskState,
+  VisioDiagramType,
+  VisioDiagramTypeMode,
+  VisioMcpComponentStatus,
+  VisioMcpRuntimeStatus,
+  VisioMcpSelfCheckResult,
+  VisioPageOrientation,
+  VisioTaskStatus,
+} from './visio';

@@ -79,9 +79,18 @@ export interface AgentModeScenariosConfig {
   existing_plan_expansion_original_outline_extraction: boolean;
 }
 
+export interface VisioMcpRuntimeConfig {
+  mode: 'bundled' | 'custom';
+  command: string;
+  args: string[];
+  cwd: string;
+  env: Record<string, string>;
+}
+
 export interface ClientConfig extends AiConfig {
   image_model: ImageModelConfig;
   image_model_profiles: ImageModelProfiles;
+  visio_mcp: VisioMcpRuntimeConfig;
   components: ComponentsConfig;
   agent_mode_scenarios: AgentModeScenariosConfig;
   agent_auto_answer_enabled?: boolean;

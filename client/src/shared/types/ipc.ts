@@ -6,6 +6,7 @@ import type { RejectionCheckWorkspaceState, RejectionDocumentRole } from '../../
 import type { BidAnalysisMode, BidAnalysisTaskState, BidSectionMode, ContentGenerationOptions, ContentGenerationPlanState, ContentGenerationProgressDetail, ContentGenerationRuntimeState, ContentGenerationSectionState, DetectedBidSection, GlobalFactGroupState, SaveOutlineRequest, SaveOutlineSelectionRequest, TechnicalPlanState, TechnicalPlanStep, TechnicalPlanWorkflowKind } from '../../features/technical-plan/types';
 import type { ExportFormatConfig, ExportTemplateRecord } from './exportFormat';
 import type { OutlineData, OutlineExpansionMode, OutlineMode, OutlineWordControlOptions } from './outline';
+import type { VisioDiagramPlan, VisioDiagramRequirements, VisioDiagramState, VisioDiagramStep, VisioMcpComponentStatus, VisioMcpSelfCheckResult } from './visio';
 
 export interface TaskEventTask {
   task_id: string;
@@ -20,7 +21,7 @@ export interface TaskEventTask {
   stats?: unknown;
 }
 
-export interface TaskEvent<TState = unknown, TRejectionCheckState = unknown, TDuplicateCheckState = unknown> {
+export interface TaskEvent<TState = unknown, TRejectionCheckState = unknown, TDuplicateCheckState = unknown, TVisioDiagramState = unknown> {
   task: TaskEventTask;
   technicalPlan?: TState;
   technicalPlanPatch?: Partial<TechnicalPlanState>;
@@ -31,6 +32,7 @@ export interface TaskEvent<TState = unknown, TRejectionCheckState = unknown, TDu
   contentRuntime?: ContentGenerationRuntimeState;
   rejectionCheck?: TRejectionCheckState;
   duplicateCheck?: TDuplicateCheckState;
+  visioDiagram?: TVisioDiagramState;
 }
 
 export interface WordExportProgressEvent {
@@ -602,6 +604,17 @@ export interface YibiaoBridge {
     updateState: (partial: Partial<RejectionCheckWorkspaceState>) => Promise<RejectionCheckWorkspaceState>;
     clear: () => Promise<{ success: boolean; message?: string; state: RejectionCheckWorkspaceState }>;
   };
+  visioDiagram: {
+    loadState: () => Promise<VisioDiagramState>;
+    saveRequirements: (requirements: VisioDiagramRequirements) => Promise<VisioDiagramState>;
+    savePlan: (plan: VisioDiagramPlan) => Promise<VisioDiagramState>;
+    updateStep: (step: VisioDiagramStep) => Promise<VisioDiagramState>;
+    clear: () => Promise<{ success: boolean; message?: string; state: VisioDiagramState }>;
+    getComponentStatus: () => Promise<VisioMcpComponentStatus>;
+    runComponentSelfCheck: () => Promise<VisioMcpSelfCheckResult>;
+    restartComponent: () => Promise<VisioMcpComponentStatus>;
+    openArtifact: (relativePath: string) => Promise<{ success: boolean }>;
+  };
   templates: {
     list: () => Promise<ExportTemplateRecord[]>;
     get: (templateId: string) => Promise<ExportTemplateRecord | null>;
@@ -620,8 +633,11 @@ export interface YibiaoBridge {
     startRejectionItemsExtraction: (payload: unknown) => Promise<unknown>;
     startRejectionCheck: (payload: unknown) => Promise<unknown>;
     startDuplicateAnalysis: (payload: unknown) => Promise<unknown>;
+    startVisioPlanGeneration: (payload?: unknown) => Promise<unknown>;
+    startVisioRendering: (payload?: unknown) => Promise<unknown>;
+    cancelVisioTask: (type: 'visio-plan-generation' | 'visio-rendering') => Promise<{ success: boolean; message?: string; task?: TaskEventTask }>;
     getActiveTasks: () => Promise<TaskEventTask[]>;
-    onTaskEvent: <TState = unknown, TRejectionCheckState = unknown, TDuplicateCheckState = unknown>(callback: (event: TaskEvent<TState, TRejectionCheckState, TDuplicateCheckState>) => void) => () => void;
+    onTaskEvent: <TState = unknown, TRejectionCheckState = unknown, TDuplicateCheckState = unknown, TVisioDiagramState = unknown>(callback: (event: TaskEvent<TState, TRejectionCheckState, TDuplicateCheckState, TVisioDiagramState>) => void) => () => void;
   };
   export: {
     exportWord: (payload: unknown) => Promise<WordExportResult>;

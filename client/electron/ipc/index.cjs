@@ -12,6 +12,7 @@ const { registerLicenseIpc } = require('./licenseIpc.cjs');
 const { registerRejectionCheckIpc } = require('./rejectionCheckIpc.cjs');
 const { registerTaskIpc } = require('./taskIpc.cjs');
 const { registerTechnicalPlanIpc } = require('./technicalPlanIpc.cjs');
+const { registerVisioDiagramIpc } = require('./visioDiagramIpc.cjs');
 const { registerTemplateIpc } = require('./templateIpc.cjs');
 const { registerSystemFontIpc } = require('./systemFontIpc.cjs');
 const { registerPluginIpc } = require('./pluginIpc.cjs');
@@ -34,6 +35,9 @@ const { createSystemFontService } = require('../services/systemFontService.cjs')
 const { createTaskService } = require('../services/taskService.cjs');
 const { createTechnicalPlanStore } = require('../services/technicalPlanStore.cjs');
 const { createTemplateStore } = require('../services/templateStore.cjs');
+const { createVisioDiagramStore } = require('../services/visioDiagramStore.cjs');
+const { createVisioDiagramRenderer } = require('../services/visio/visioDiagramRenderer.cjs');
+const { createVisioMcpService } = require('../services/visio/visioMcpService.cjs');
 const { checkRequiredOnlineServices, getRequiredOnlineServiceStatus } = require('../services/requiredOnlineServices.cjs');
 const { initLocalImageRenderService } = require('../services/localImageRenderService.cjs');
 
@@ -92,6 +96,15 @@ const workspaceDatabaseChannels = [
   'rejection-check:save-ui-state',
   'rejection-check:update-state',
   'rejection-check:clear',
+  'visio-diagram:load-state',
+  'visio-diagram:save-requirements',
+  'visio-diagram:save-plan',
+  'visio-diagram:update-step',
+  'visio-diagram:clear',
+  'visio-diagram:get-component-status',
+  'visio-diagram:run-component-self-check',
+  'visio-diagram:restart-component',
+  'visio-diagram:open-artifact',
   'knowledge-base:get-migration-status',
   'knowledge-base:migrate-legacy',
   'knowledge-base:list',
@@ -115,6 +128,9 @@ const workspaceDatabaseChannels = [
   'tasks:start-rejection-items-extraction',
   'tasks:start-rejection-check',
   'tasks:start-duplicate-analysis',
+  'tasks:start-visio-plan-generation',
+  'tasks:start-visio-rendering',
+  'tasks:cancel-visio-task',
   'tasks:get-active',
   'templates:list',
   'templates:get',
@@ -179,22 +195,24 @@ function registerWorkspaceDatabaseStatusIpc({ mainWindow }) {
   };
 }
 
-function registerWorkspaceDatabaseServices({ app, configStore, aiService, agentService, autoConfirmationService, fileService, updateStatus }) {
+function registerWorkspaceDatabaseServices({ app, configStore, aiService, agentService, autoConfirmationService, fileService, visioMcpService, visioDiagramRenderer, updateStatus }) {
   const sqliteDatabase = createSqliteDatabase(app, { onStatus: updateStatus });
   const knowledgeBaseStore = createKnowledgeBaseStore({ app, db: sqliteDatabase.db });
   const knowledgeBaseService = createKnowledgeBaseService({ app, aiService, configStore, knowledgeBaseStore });
   const technicalPlanStore = createTechnicalPlanStore({ app, db: sqliteDatabase.db, fileService, agentService });
   const duplicateCheckStore = createDuplicateCheckStore({ app, db: sqliteDatabase.db });
   const rejectionCheckStore = createRejectionCheckStore({ app, db: sqliteDatabase.db, fileService, technicalPlanStore });
+  const visioDiagramStore = createVisioDiagramStore({ app, db: sqliteDatabase.db });
   const templateStore = createTemplateStore({ db: sqliteDatabase.db });
   const duplicateCheckService = createDuplicateCheckService({ app, configStore, workspaceStore: duplicateCheckStore });
-  const taskService = createTaskService({ aiService, agentService, autoConfirmationService, technicalPlanStore, rejectionCheckStore, duplicateCheckStore, knowledgeBaseService, duplicateCheckService });
+  const taskService = createTaskService({ aiService, agentService, autoConfirmationService, technicalPlanStore, rejectionCheckStore, duplicateCheckStore, visioDiagramStore, knowledgeBaseService, duplicateCheckService, visioDiagramRenderer });
 
   clearWorkspaceDatabaseIpc();
   registerKnowledgeBaseIpc({ knowledgeBaseService });
   registerTechnicalPlanIpc({ technicalPlanStore, taskService });
   registerDuplicateCheckIpc({ duplicateCheckStore });
   registerRejectionCheckIpc({ rejectionCheckStore });
+  registerVisioDiagramIpc({ visioDiagramStore, visioMcpService, taskService });
   registerTemplateIpc({ templateStore });
   registerTaskIpc({ taskService });
   updateStatus({ phase: 'ready', ready: true, message: '本地数据库已就绪' });
@@ -221,6 +239,12 @@ function registerIpcHandlers({ app, mainWindow, checkAndDownloadUpdate, triggerU
   initLocalImageRenderService({ configStore });
   const licenseService = createLicenseService({ app, configStore });
   const aiService = createAiService({ app, configStore });
+  const visioMcpService = createVisioMcpService({
+    app,
+    getRuntimeConfig: () => configStore.load().visio_mcp,
+    logger: aiService.createDeveloperLogger('visio-mcp', { name: 'runtime' }),
+  });
+  const visioDiagramRenderer = createVisioDiagramRenderer({ visioMcpService });
   const developerExpansionReplaceTestService = createDeveloperExpansionReplaceTestService({ aiService });
   const autoConfirmationService = createAutoConfirmationService({ configStore });
   const agentService = createAgentService({ app, configStore, aiService, licenseService, autoConfirmationService });
@@ -232,7 +256,10 @@ function registerIpcHandlers({ app, mainWindow, checkAndDownloadUpdate, triggerU
   let gpuTrialRelaunchStarted = false;
 
   const closeServices = async () => {
-    await agentService.close?.();
+    await Promise.all([
+      agentService.close?.(),
+      visioMcpService.close?.(),
+    ]);
     autoConfirmationService.close?.();
   };
 
@@ -346,7 +373,7 @@ function registerIpcHandlers({ app, mainWindow, checkAndDownloadUpdate, triggerU
     databaseStatus.updateStatus({ phase: 'checking', ready: false, message: '正在检查本地数据库' });
     setTimeout(() => {
       try {
-        registerWorkspaceDatabaseServices({ app, configStore, aiService, agentService, autoConfirmationService, fileService, updateStatus: databaseStatus.updateStatus });
+        registerWorkspaceDatabaseServices({ app, configStore, aiService, agentService, autoConfirmationService, fileService, visioMcpService, visioDiagramRenderer, updateStatus: databaseStatus.updateStatus });
       } catch (error) {
         databaseStatus.updateStatus({
           phase: 'error',

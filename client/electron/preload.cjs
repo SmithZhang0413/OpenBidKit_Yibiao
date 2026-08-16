@@ -181,6 +181,17 @@ const bridge = {
     updateState: (partial) => ipcRenderer.invoke('rejection-check:update-state', partial),
     clear: () => ipcRenderer.invoke('rejection-check:clear'),
   },
+  visioDiagram: {
+    loadState: () => ipcRenderer.invoke('visio-diagram:load-state'),
+    saveRequirements: (requirements) => ipcRenderer.invoke('visio-diagram:save-requirements', requirements),
+    savePlan: (plan) => ipcRenderer.invoke('visio-diagram:save-plan', plan),
+    updateStep: (step) => ipcRenderer.invoke('visio-diagram:update-step', step),
+    clear: () => ipcRenderer.invoke('visio-diagram:clear'),
+    getComponentStatus: () => ipcRenderer.invoke('visio-diagram:get-component-status'),
+    runComponentSelfCheck: () => ipcRenderer.invoke('visio-diagram:run-component-self-check'),
+    restartComponent: () => ipcRenderer.invoke('visio-diagram:restart-component'),
+    openArtifact: (relativePath) => ipcRenderer.invoke('visio-diagram:open-artifact', relativePath),
+  },
   templates: {
     list: () => ipcRenderer.invoke('templates:list'),
     get: (templateId) => ipcRenderer.invoke('templates:get', templateId),
@@ -199,6 +210,9 @@ const bridge = {
     startRejectionItemsExtraction: (payload) => ipcRenderer.invoke('tasks:start-rejection-items-extraction', payload),
     startRejectionCheck: (payload) => ipcRenderer.invoke('tasks:start-rejection-check', payload),
     startDuplicateAnalysis: (payload) => ipcRenderer.invoke('tasks:start-duplicate-analysis', payload),
+    startVisioPlanGeneration: (payload) => ipcRenderer.invoke('tasks:start-visio-plan-generation', payload),
+    startVisioRendering: (payload) => ipcRenderer.invoke('tasks:start-visio-rendering', payload),
+    cancelVisioTask: (type) => ipcRenderer.invoke('tasks:cancel-visio-task', type),
     getActiveTasks: () => ipcRenderer.invoke('tasks:get-active'),
     onTaskEvent: (callback) => {
       ipcRenderer.send('tasks:subscribe');
