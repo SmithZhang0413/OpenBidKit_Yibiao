@@ -16,6 +16,7 @@ const navigationIcons: Record<SectionId, ComponentType<SVGProps<SVGSVGElement>>>
   'technical-plan': DocumentIcon,
   'existing-plan-expansion': DocumentIcon,
   'business-bid': BriefcaseIcon,
+  'visio-diagram': VisioDiagramIcon,
   'knowledge-base': ArchiveIcon,
   'document-knowledge-base': ArchiveIcon,
   'image-knowledge-base': ArchiveIcon,
@@ -198,6 +199,16 @@ function BidGenerationIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M8.8 13.2h6.4" />
       <path d="M8.8 16.3h4.5" />
       <path d="M4.5 7.2v13h12" />
+    </svg>
+  );
+}
+
+function VisioDiagramIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M4.5 5.5h5v4h-5zM14.5 14.5h5v4h-5z" />
+      <path d="M9.5 7.5h3.2a3.8 3.8 0 0 1 3.8 3.8v3.2" />
+      <path d="m14.2 12.4 2.3 2.3 2.3-2.3" />
     </svg>
   );
 }

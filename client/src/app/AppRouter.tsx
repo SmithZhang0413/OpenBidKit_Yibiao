@@ -16,6 +16,7 @@ import ResourcesPage from '../features/resources/pages/ResourcesPage';
 import PluginsPage from '../features/plugins/pages/PluginsPage';
 import SettingsPage from '../features/settings/pages/SettingsPage';
 import TechnicalPlanHome from '../features/technical-plan/pages/TechnicalPlanHome';
+import VisioDiagramPage from '../features/visio-diagram/pages/VisioDiagramPage';
 import SecondaryMenuPage from '../shared/ui/SecondaryMenuPage';
 
 interface AppRouterProps {
@@ -51,6 +52,8 @@ function AppRouter({ activeSection, developerMode, onDeveloperModeChange, onSect
       return <TechnicalPlanHome workflowKind="existing-plan-expansion" registerLeaveGuard={registerLeaveGuard} onSectionChange={onSectionChange} />;
     case 'business-bid':
       return <BusinessBidPage />;
+    case 'visio-diagram':
+      return <VisioDiagramPage />;
     case 'document-knowledge-base':
       return <KnowledgeBasePage />;
     case 'resources':

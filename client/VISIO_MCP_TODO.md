@@ -53,7 +53,12 @@
   - preload 与 window.yibiao 类型同步，新增 DiagramPlan、任务、产物、组件状态和 Runtime 配置共享类型。
   - user_config.json 支持 bundled/custom Visio MCP Runtime 配置，设置页保存其他配置时会完整保留。
   - 验证：6 个 M05 CJS 文件通过 node --check；4 项 M05 专项测试及 M01-M05 共 18 项回归通过；Electron SQLite 冒烟及 npm run build 通过。
-- [ ] M06：菜单、路由和 Visio 三步式前端页面
+- [x] M06：菜单、路由和 Visio 三步式前端页面
+  - 新增 Visio 绘图主菜单、独立侧栏图标和 AppRouter 页面入口。
+  - 三步工作流覆盖需求输入、图表计划核对和 VSDX 结果打开；任务进度、取消、错误与成功提示均通过现有 bridge/Toast 接入。
+  - 工作区状态以 Main 持久化结果为权威，支持后台任务事件恢复；重新生成计划失败时保留已有计划，需求变更才清空旧结果。
+  - 样式复用现有设计令牌和按钮体系，页面根固定高度，长表单、节点和连线列表均在页面内部滚动。
+  - 验证：Electron 临时 userData 运行时验证需求页和计划页，4 节点/3 连线及步骤切换正确；M01-M05 共 18 项回归测试、Electron SQLite 中文路径冒烟及 npm run build 通过。
 - [ ] M07：计划编辑、预览、工具条、Toast 与设置状态卡
 - [ ] M08：Windows Sidecar 打包、Analytics 映射和端到端验收
 

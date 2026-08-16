@@ -34,6 +34,11 @@ export const appMenuItems: AppMenuItem[] = [
     ],
   },
   {
+    id: 'visio-diagram',
+    label: 'Visio 绘图',
+    description: '将图表需求转换为可编辑的 Visio 文件',
+  },
+  {
     id: 'template-settings',
     label: '模版设置',
     description: '标书导出模板与排版配置',
