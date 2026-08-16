@@ -36,7 +36,11 @@
   - 验证：6 个 M02 CJS 文件通过 `node --check`；M01/M02 共 9 项测试通过；`npm run build` 通过。
   - 真实冒烟：Python 3.14.7 + visio-mcp 0.1.2 + Microsoft Visio 成功生成 6 节点、6 连线的中文流程图，产出 34,296 字节 VSDX 和 30,291 字节 PNG，完成后打开文档数为 0。
 
-- [ ] M03：VisioDiagramStore、SQLite 迁移与工作区产物管理
+- [x] M03：VisioDiagramStore、SQLite 迁移与工作区产物管理
+  - SQLite 升级到 v20，新增 Visio 单例状态与两类后台任务表，并同步目标 schema 文档。
+  - Store 持久化需求、DiagramPlan、修订号、任务状态和活动产物索引。
+  - 产物按修订保存在 workspace/visio-diagram/revisions/；计划变更仅使旧产物失效，显式重置才清理。
+  - 验证：3 个 M03 CJS 文件通过 node --check；Electron 原生 SQLite v19→v20、状态恢复、修订失效与中文路径冒烟通过；M01/M02 共 9 项测试通过；npm run build 通过。
 - [ ] M04：taskService 后台任务、进度、取消与恢复
 - [ ] M05：IPC、preload、共享类型与组件自检接口
 - [ ] M06：菜单、路由和 Visio 三步式前端页面

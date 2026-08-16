@@ -56,6 +56,14 @@ function getRejectionCheckDir(app) {
   return path.join(getWorkspaceDir(app), 'rejection-check');
 }
 
+function getVisioDiagramDir(app) {
+  return path.join(getWorkspaceDir(app), 'visio-diagram');
+}
+
+function getVisioDiagramRevisionsDir(app) {
+  return path.join(getVisioDiagramDir(app), 'revisions');
+}
+
 function getRejectionCheckDocumentMarkdownPath(app, role, documentId) {
   if (role === 'bid') {
     const safeDocumentId = String(documentId || 'bid').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -129,6 +137,8 @@ module.exports = {
   getLicenseFilePath,
   getRejectionCheckDir,
   getRejectionCheckDocumentMarkdownPath,
+  getVisioDiagramDir,
+  getVisioDiagramRevisionsDir,
   getTechnicalPlanDir,
   getTechnicalPlanGeneratedIllustrationsDir,
   getTechnicalPlanIllustrationsDir,

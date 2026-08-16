@@ -3,7 +3,7 @@ const path = require('node:path');
 const Database = require('better-sqlite3');
 const { getWorkspaceDatabasePath } = require('../utils/paths.cjs');
 
-const schemaVersion = 19;
+const schemaVersion = 20;
 
 function createInitialSchema(db) {
   db.exec(`
@@ -904,6 +904,33 @@ function createExportTemplatesSchema(db) {
   `);
 }
 
+function createVisioDiagramSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS visio_diagram_meta (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      step TEXT NOT NULL DEFAULT 'requirements',
+      requirements_json TEXT NOT NULL DEFAULT '{}',
+      plan_json TEXT,
+      plan_revision INTEGER NOT NULL DEFAULT 0,
+      active_artifact_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS visio_diagram_tasks (
+      type TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      progress INTEGER NOT NULL DEFAULT 0,
+      logs_json TEXT,
+      stats_json TEXT,
+      error TEXT,
+      started_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+}
+
 const schemaHealthTableGroups = [
   {
     version: 1,
@@ -978,6 +1005,11 @@ const schemaHealthTableGroups = [
     version: 15,
     tables: ['export_templates'],
     repair: createExportTemplatesSchema,
+  },
+  {
+    version: 20,
+    tables: ['visio_diagram_meta', 'visio_diagram_tasks'],
+    repair: createVisioDiagramSchema,
   },
 ];
 
@@ -1295,6 +1327,11 @@ const migrations = [
     version: 19,
     description: '技术方案目录叶子新增内容处理模式',
     up: addTechnicalPlanOutlineContentMode,
+  },
+  {
+    version: 20,
+    description: '新增 Visio 图表工作区和后台任务表结构',
+    up: createVisioDiagramSchema,
   },
 ];
 
