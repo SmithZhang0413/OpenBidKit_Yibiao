@@ -19,12 +19,13 @@
   - 已完整阅读 `client/开发说明.md`。
   - 已确认模块顺序、Git 提交规则和验证门槛。
 
-- [ ] M01：独立 VisioMcpService 与 MCP 生命周期管理
+- [x] M01：独立 VisioMcpService 与 MCP 生命周期管理
   - 能解析 bundled/custom 两类运行时配置。
   - 能通过 STDIO 建立 MCP 会话、初始化、发现工具和调用工具。
   - 具备串行调用、超时、取消、进程退出、重启和释放能力。
   - Renderer 和现有 IPC 暂不接入。
-  - 验证：语法检查、协议级自动化测试、项目构建。
+  - 验证：4 个 CJS 文件通过 `node --check`；3 项真实 STDIO MCP 协议测试通过；`npm run build` 通过。
+  - 依赖：固定使用 `@modelcontextprotocol/sdk@1.30.0`；`npm audit` 报告 32 个仓库依赖问题，未发现该 SDK 引入的直接公告项，不在本模块执行破坏性升级。
 
 - [ ] M02：DiagramPlan、布局转换与独立 VSDX/PNG 生成功能
   - 定义版本化 DiagramPlan Schema 和单次输出边界校验。
