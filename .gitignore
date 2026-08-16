@@ -6,6 +6,8 @@ user_config.json
 config.json
 *.private.md
 
+# 流程图文件
+docs/
 # 上传文件目录
 uploads/
 *.docx
