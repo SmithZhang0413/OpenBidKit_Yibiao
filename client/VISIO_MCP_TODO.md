@@ -41,7 +41,12 @@
   - Store 持久化需求、DiagramPlan、修订号、任务状态和活动产物索引。
   - 产物按修订保存在 workspace/visio-diagram/revisions/；计划变更仅使旧产物失效，显式重置才清理。
   - 验证：3 个 M03 CJS 文件通过 node --check；Electron 原生 SQLite v19→v20、状态恢复、修订失效与中文路径冒烟通过；M01/M02 共 9 项测试通过；npm run build 通过。
-- [ ] M04：taskService 后台任务、进度、取消与恢复
+- [x] M04：taskService 后台任务、进度、取消与恢复
+  - 新增 visio-plan-generation 与 visio-rendering 两类互斥后台任务，持续持久化进度、日志和统计信息。
+  - 计划生成经 AI Service 输出并校验 DiagramPlan；绘制任务只在 Renderer 全部成功后发布新活动产物。
+  - AbortSignal 同时覆盖 AI 排队/在途请求和 Visio MCP 绘制；取消状态可区分，上一版有效产物保持不变。
+  - 应用中断后，残留 running 任务恢复为可重试 error；支持取消任务和重置前等待异步清理。
+  - 验证：4 个 M04 CJS 文件通过 node --check；5 项 M04 专项测试和 M01/M02 共 14 项回归测试通过；M03 Electron SQLite 冒烟通过；npm run build 通过。
 - [ ] M05：IPC、preload、共享类型与组件自检接口
 - [ ] M06：菜单、路由和 Visio 三步式前端页面
 - [ ] M07：计划编辑、预览、工具条、Toast 与设置状态卡

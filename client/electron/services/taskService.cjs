@@ -6,6 +6,7 @@ const { runGlobalFactsTask } = require('./globalFactsTask.cjs');
 const { runOutlineGenerationTaskV2 } = require('./outlineGenerationTaskV2.cjs');
 const { OUTLINE_AGENT_TASK_KEY } = require('./outlineGenerationAgentV2Config.cjs');
 const { runRejectionCheckTask, runRejectionItemsExtractionTask } = require('./rejectionCheckTask.cjs');
+const { runVisioPlanGenerationTask, runVisioRenderingTask } = require('./visioDiagramTask.cjs');
 
 const taskDefinitions = {
   'bid-section-extraction': {
@@ -79,6 +80,24 @@ const taskDefinitions = {
     lockPolicy: 'group-exclusive',
     stateKey: 'duplicateCheck',
     field: 'analysisTask',
+  },
+  'visio-plan-generation': {
+    label: 'Visio 图表计划生成',
+    group: 'visio-diagram',
+    groupLabel: 'Visio 图表',
+    step: 2,
+    lockPolicy: 'group-exclusive',
+    stateKey: 'visioDiagram',
+    field: 'planTask',
+  },
+  'visio-rendering': {
+    label: 'Visio 图表绘制',
+    group: 'visio-diagram',
+    groupLabel: 'Visio 图表',
+    step: 3,
+    lockPolicy: 'group-exclusive',
+    stateKey: 'visioDiagram',
+    field: 'renderTask',
   },
 };
 
@@ -224,7 +243,7 @@ function createTask(type, payload) {
   };
 }
 
-function createTaskService({ aiService, agentService, autoConfirmationService, technicalPlanStore, rejectionCheckStore, duplicateCheckStore, knowledgeBaseService, duplicateCheckService }) {
+function createTaskService({ aiService, agentService, autoConfirmationService, technicalPlanStore, rejectionCheckStore, duplicateCheckStore, visioDiagramStore, knowledgeBaseService, duplicateCheckService, visioDiagramRenderer }) {
   const subscribers = new Set();
   const callbackSubscribers = new Set();
   const activeTasks = new Map();
@@ -371,6 +390,9 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
     if (definition.stateKey === 'duplicateCheck') {
       return { duplicateCheck: state };
     }
+    if (definition.stateKey === 'visioDiagram') {
+      return { visioDiagram: state };
+    }
     return {};
   }
 
@@ -384,6 +406,9 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
     }
     if (definition.stateKey === 'duplicateCheck') {
       return { duplicateCheck: duplicateCheckStore.loadDuplicateCheck() };
+    }
+    if (definition.stateKey === 'visioDiagram') {
+      return { visioDiagram: visioDiagramStore.loadVisioDiagram() };
     }
     return {};
   }
@@ -473,6 +498,9 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
     if (definition.stateKey === 'duplicateCheck') {
       return duplicateCheckStore.updateDuplicateCheck(partial);
     }
+    if (definition.stateKey === 'visioDiagram') {
+      return visioDiagramStore.updateVisioDiagram(partial);
+    }
     return technicalPlanStore.updateTechnicalPlan(partial);
   }
 
@@ -485,6 +513,9 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
     }
     if (definition.stateKey === 'duplicateCheck') {
       return duplicateCheckStore.loadDuplicateCheck();
+    }
+    if (definition.stateKey === 'visioDiagram') {
+      return visioDiagramStore.loadVisioDiagram();
     }
     return technicalPlanStore.loadTechnicalPlan();
   }
@@ -536,6 +567,7 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
       resolveSettled = resolve;
     });
     const taskControl = {
+      taskId: task.task_id,
       queueScopeId,
       signal: abortController.signal,
       pauseRequested: false,
@@ -707,14 +739,34 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
       ? technicalPlanStore
       : definition.stateKey === 'rejectionCheck'
         ? rejectionCheckStore
-        : duplicateCheckStore;
+        : definition.stateKey === 'visioDiagram'
+          ? visioDiagramStore
+          : duplicateCheckStore;
     const runnerAiService = aiService?.withQueueScope ? aiService.withQueueScope(queueScopeId) : aiService;
     const runnerAgentService = agentService.bindTaskContext(
       () => createAgentUserTaskContext(type, definition, payload, currentTask),
       { queueScopeId },
     );
-    runner({ aiService: runnerAiService, agentService: runnerAgentService, workspaceStore: runnerWorkspaceStore, knowledgeBaseService, updateTask, payload, taskControl, previousState }).catch((error) => {
-      const failedTask = updateTask({ status: 'error', error: error.message || '任务执行失败' });
+    runner({
+      aiService: runnerAiService,
+      agentService: runnerAgentService,
+      workspaceStore: runnerWorkspaceStore,
+      knowledgeBaseService,
+      visioDiagramRenderer,
+      updateTask,
+      payload,
+      taskControl,
+      previousState,
+    }).catch((error) => {
+      const cancelled = taskControl.signal.aborted || error?.code === 'TASK_CANCELLED';
+      const message = cancelled
+        ? taskControl.signal.reason?.message || error?.message || '后台任务已取消'
+        : error?.message || '任务执行失败';
+      const failedTask = updateTask({
+        status: cancelled ? 'cancelled' : 'error',
+        error: message,
+        logs: [...(Array.isArray(currentTask.logs) ? currentTask.logs : []), message],
+      });
       const nextState = updateWorkspaceState(definition, { [taskField]: failedTask });
       emit(failedTask, buildSnapshot(definition, nextState, failedTask));
     }).finally(() => {
@@ -1027,6 +1079,55 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
     emit(nextState.analysisTask || recoveredTask, { duplicateCheck: nextState });
   }
 
+  function recoverInterruptedVisioDiagramTasks() {
+    if (!visioDiagramStore) return;
+    const state = visioDiagramStore.loadVisioDiagram() || {};
+    const partial = {};
+    const recover = (field, type, message) => {
+      const task = state[field];
+      if (activeTasks.has(type) || !isActiveTaskStatus(task?.status)) return;
+      partial[field] = {
+        ...task,
+        status: 'error',
+        progress: 100,
+        error: message,
+        logs: [...(Array.isArray(task.logs) ? task.logs : []), message],
+        updated_at: now(),
+      };
+    };
+    recover('planTask', 'visio-plan-generation', '上次 Visio 图表计划生成未完成，请重新生成');
+    recover('renderTask', 'visio-rendering', '上次 Visio 图表绘制未完成，请重新绘制');
+    if (!Object.keys(partial).length) return;
+    const nextState = visioDiagramStore.updateVisioDiagram(partial);
+    for (const field of Object.keys(partial)) {
+      const task = nextState[field] || partial[field];
+      emit(task, { visioDiagram: nextState });
+    }
+  }
+
+  function cancelVisioTask(type, reason = '用户取消了 Visio 图表任务') {
+    if (!['visio-plan-generation', 'visio-rendering'].includes(type)) {
+      throw new Error('不支持取消该 Visio 图表任务');
+    }
+    const task = activeTasks.get(type);
+    const control = activeTaskControls.get(type);
+    if (!task || !isActiveTaskStatus(task.status) || !control?.cancel) {
+      return { success: false, message: '当前没有正在执行的 Visio 图表任务' };
+    }
+    control.cancel(reason);
+    return { success: true, task };
+  }
+
+  async function resetVisioDiagram() {
+    if (!visioDiagramStore) throw new Error('Visio 图表工作区尚未初始化');
+    const controls = ['visio-plan-generation', 'visio-rendering']
+      .map((type) => activeTaskControls.get(type))
+      .filter(Boolean);
+    controls.forEach((control) => control.cancel('Visio 图表已重置，后台任务已取消'));
+    await Promise.all(controls.map((control) => control.waitForSettlement()));
+    return visioDiagramStore.clearVisioDiagram();
+  }
+
   return {
     subscribe,
     subscribeCallback,
@@ -1126,6 +1227,18 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
       }
       return startManagedTask('duplicate-analysis', payload, duplicateCheckService.runAnalysisTask);
     },
+    startVisioPlanGeneration(payload) {
+      if (!visioDiagramStore) throw new Error('Visio 图表工作区尚未初始化');
+      return startManagedTask('visio-plan-generation', payload, runVisioPlanGenerationTask);
+    },
+    startVisioRendering(payload) {
+      if (!visioDiagramStore) throw new Error('Visio 图表工作区尚未初始化');
+      if (!visioDiagramRenderer?.render) throw new Error('Visio 图表渲染服务尚未初始化');
+      return startManagedTask('visio-rendering', payload, runVisioRenderingTask);
+    },
+    cancelVisioTask(type) {
+      return cancelVisioTask(type);
+    },
     confirmOutlineSelection(payload) {
       const control = activeTaskControls.get('outline-generation');
       if (!control?.confirmOutlineSelection) throw new Error('当前没有等待确认的一级目录任务');
@@ -1140,6 +1253,7 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
       await cancelOutlineGenerationForReset();
       return technicalPlanStore.clearTechnicalPlan();
     },
+    resetVisioDiagram,
     getActiveTasks() {
       recoverInterruptedBidSectionExtractionTask();
       recoverInterruptedBidAnalysisTask();
@@ -1148,6 +1262,7 @@ function createTaskService({ aiService, agentService, autoConfirmationService, t
       recoverInterruptedGlobalFactsTask();
       recoverInterruptedRejectionCheckTasks();
       recoverInterruptedDuplicateCheckTask();
+      recoverInterruptedVisioDiagramTasks();
       return Array.from(activeTasks.values());
     },
   };

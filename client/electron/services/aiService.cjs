@@ -170,15 +170,28 @@ function createAbortError() {
   return markAiRequestError(error, { retryable: true });
 }
 
-function createOperationTimeout(timeoutMs) {
+function createOperationTimeout(timeoutMs, parentSignal) {
   const controller = new AbortController();
+  let timer;
+  let rejectOperation;
   const timeoutPromise = new Promise((_resolve, reject) => {
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(createAbortError());
+    rejectOperation = reject;
+    timer = setTimeout(() => {
+      const error = createAbortError();
+      controller.abort(error);
+      reject(error);
     }, timeoutMs);
-    controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
   });
+  const abortFromParent = () => {
+    const reason = parentSignal?.reason instanceof Error
+      ? parentSignal.reason
+      : new Error('AI 请求已取消');
+    if (!controller.signal.aborted) controller.abort(reason);
+    rejectOperation(reason);
+  };
+  controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+  parentSignal?.addEventListener?.('abort', abortFromParent, { once: true });
+  if (parentSignal?.aborted) abortFromParent();
 
   return {
     signal: controller.signal,
@@ -186,13 +199,15 @@ function createOperationTimeout(timeoutMs) {
       return Promise.race([promise, timeoutPromise]);
     },
     clear() {
-      controller.abort();
+      parentSignal?.removeEventListener?.('abort', abortFromParent);
+      clearTimeout(timer);
+      if (!controller.signal.aborted) controller.abort();
     },
   };
 }
 
-async function runWithOperationTimeout(runner, timeoutMs = AI_REQUEST_TIMEOUT_MS) {
-  const timeout = createOperationTimeout(timeoutMs);
+async function runWithOperationTimeout(runner, timeoutMs = AI_REQUEST_TIMEOUT_MS, parentSignal) {
+  const timeout = createOperationTimeout(timeoutMs, parentSignal);
   try {
     return await timeout.run(runner(timeout.signal));
   } finally {
@@ -589,7 +604,7 @@ function normalizeJsonPayload(request, parsed) {
   return normalized;
 }
 
-async function repairJsonResponse(app, config, invalidContent, issues, responseFormat, progressCallback, progressLabel, repairMessagesBuilder, logTitle) {
+async function repairJsonResponse(app, config, invalidContent, issues, responseFormat, progressCallback, progressLabel, repairMessagesBuilder, logTitle, signal) {
   await emitProgress(progressCallback, `${progressLabel}格式校验失败，正在基于当前结果进行修复。`);
   return chatWithConfig(app, config, {
     messages: repairMessagesBuilder
@@ -597,6 +612,7 @@ async function repairJsonResponse(app, config, invalidContent, issues, responseF
       : buildJsonRepairMessages(invalidContent, issues, progressLabel),
     response_format: responseFormat,
     logTitle: logTitle ? `${logTitle}修复` : `${progressLabel}修复`,
+    signal,
   });
 }
 
@@ -621,6 +637,7 @@ async function parseOrRepairJsonResponseWithConfig(app, config, request, content
         progressLabel,
         request.repairMessagesBuilder,
         logTitle,
+        request.signal,
       );
       return normalizeJsonPayload(request, parseJsonContent(repairedContent));
     } catch {
@@ -645,6 +662,7 @@ async function collectJsonResponseWithConfig(app, config, request) {
       timeout_ms: request.timeout_ms,
       timeout_message: request.timeout_message,
       logTitle,
+      signal: request.signal,
     });
 
     try {
@@ -665,6 +683,7 @@ async function collectJsonResponseWithConfig(app, config, request) {
           progressLabel,
           request.repairMessagesBuilder,
           logTitle,
+          request.signal,
         );
         const repairedParsed = parseJsonContent(repairedContent);
         return normalizeJsonPayload(request, repairedParsed);
@@ -1208,7 +1227,7 @@ async function chatWithConfig(app, config, request) {
         requestBody = createChatRequestBody(config, request, { omitResponseFormat: true, stream: requestMode === 'stream' });
         return requestTextAi(app, config, requestBody, { signal, requestMode });
       }
-    }, timeoutMs));
+    }, timeoutMs, request.signal));
 
     responseData = result.responseData;
     recordTextTokenStats(config, result.usage);
@@ -1783,14 +1802,14 @@ function createAiService({ app, configStore }) {
       return enqueueTextRequest(request, () => {
         const config = configStore.load();
         return collectJsonResponseWithConfig(app, config, request);
-      });
+      }, { signal: request?.signal });
     },
 
     async collectJsonResponse(request) {
       return enqueueTextRequest(request, () => {
         const config = configStore.load();
         return collectJsonResponseWithConfig(app, config, request);
-      });
+      }, { signal: request?.signal });
     },
 
     async parseJsonResponseContent(request, content) {
