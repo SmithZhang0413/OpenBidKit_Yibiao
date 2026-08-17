@@ -60,7 +60,47 @@
   - 样式复用现有设计令牌和按钮体系，页面根固定高度，长表单、节点和连线列表均在页面内部滚动。
   - 验证：Electron 临时 userData 运行时验证需求页和计划页，4 节点/3 连线及步骤切换正确；M01-M05 共 18 项回归测试、Electron SQLite 中文路径冒烟及 npm run build 通过。
 - [ ] M07：计划编辑、预览、工具条、Toast 与设置状态卡
+  - [ ] 计划编辑器：可编辑标题、图表类型、页面方向、分组、节点和连线；节点、分组和连线 ID 由程序维护并只读展示。
+  - [ ] 编辑联动：删除节点时同步删除关联连线；删除分组时解除节点归属；端点、分组、类型和必填文本只在 Renderer 用户输入层校验。
+  - [ ] 保存语义：采用显式保存，不自动保存；保存成功后调用现有 `savePlan()` 生成新计划修订，并按 Store 既有语义使旧活动产物失效。
+  - [ ] 离开保护：计划存在未保存修改时接入 AppRouter 既有 leave guard；任务运行期间禁用冲突的编辑、保存和步骤切换操作。
+  - [ ] PNG 预览：扩展 `yibiao-asset`，新增 `visio-diagram` 资产根并映射到 `getVisioDiagramDir(app)`；相对路径逐段编码，Renderer 不读取本地文件或 Base64。
+  - [ ] 预览交互：结果页显示当前页大图和多页切换入口；预览读取失败不影响 VSDX 打开与重新生成，不在本模块增加图片编辑能力。
+  - [ ] 浮动工具条：复用 `shared/ui/FloatingToolbar`，按当前步骤提供重置、上一步/下一步、保存计划、重新生成计划、生成/重新生成 Visio、打开 VSDX。
+  - [ ] Toast 边界：M06 已有任务成功/失败/取消提示；本模块只补计划保存、工作区重置、组件自检/重启和预览读取失败提示，避免重复通知。
+  - [ ] 设置状态卡：放入“组件设置”，展示 bundled/custom、支持性、可用性、进程阶段、服务版本、工具数量和最后错误，并提供自检、重启操作。
+  - [ ] Runtime 配置：状态卡支持选择 bundled/custom；custom 模式可编辑 command、args、cwd，env 继续保留既有值，不在普通表单展示或改写环境变量。
+  - [ ] 状态同步：设置保存继续完整保留 `visio_mcp`；自检、重启和配置保存后刷新卡片，不在 Renderer 缓存第二份权威运行状态。
+  - [ ] 专项验证：覆盖计划编辑联动、保存修订/产物失效、预览 URL 编码、状态卡状态映射和工具条禁用规则；Electron 临时 userData 验证中文路径、多页预览和离开保护。
+  - [ ] 完成门槛：相关 TypeScript/CJS 检查、M01-M07 回归、Electron 冒烟和 `npm run build` 全部通过；更新本清单后独立 Git 提交。
+
 - [ ] M08：Windows Sidecar 打包、Analytics 映射和端到端验收
+  - [ ] M08-A：Windows Sidecar 构建、打包与发布
+    - [ ] 固定上游输入：锁定 `visio-mcp==0.1.2`、Python 3.14.x 和官方 wheel SHA256 `c6720716de0decd6d5a79651af28ce3760434bb6a7606305c834e2afee939f46`。
+    - [ ] 冻结技术验证：先完成 `fastmcp + pywin32 + stdio` 冻结冒烟，再固定已验证的 PyInstaller 与 hooks-contrib 版本；使用 console/stdio 模式生成单文件 `visio-mcp.exe`。
+    - [ ] 构建元数据：记录版本、平台、架构、上游 URL、SHA256、构建工具版本和依赖清单；随产物保留 visio-mcp MIT 许可证及第三方声明。
+    - [ ] 准备脚本：将构建结果原子发布到 `vendor/visio-mcp/win32-x64/visio-mcp.exe`，不复用用户全局 Python 环境作为运行依赖。
+    - [ ] 源码侧校验：检查 EXE、VERSION、manifest、许可证和 SHA256，并通过真实 MCP initialize/listTools 自检 STDIO 协议。
+    - [ ] 安装包校验：确认安装包只携带目标 `win32-x64` Sidecar，路径与 `visioMcpRuntime` 的 packaged 解析完全一致。
+    - [ ] 客户端打包：在 `package.json` 增加准备/验证命令和 Windows `extraResources`；Windows 第一版只发布 x64，macOS 包不写入 Visio Sidecar。
+    - [ ] Release CI：Windows job 使用固定 Python 3.14，在 electron-builder 前完成构建、哈希和协议校验，在 NSIS/ZIP/MSI 后执行 packaged verify；任一失败均阻止发布。
+    - [ ] 平台边界：macOS job 保持现状并验证不包含 Visio Sidecar；macOS Renderer 明确展示“不支持 Microsoft Visio”。
+    - [ ] 子模块提交：脚本、打包配置和 Release CI 验证全部通过后独立 Git 提交，再勾选 M08-A。
+  - [ ] M08-B：恢复 Analytics 基线并增加 Visio 映射
+    - [ ] 等价恢复客户端 `app_open`、`page_view`、`config_usage`、`ai_request`、`resource_click`、`agent_runtime` 采集调用，保持 Worker 现有允许事件、聚合字段和 Dashboard 展示能力。
+    - [ ] 隐私边界：不采集图表需求正文、标题、DiagramPlan、文件路径、MCP 参数、API Key 或本地环境变量；埋点失败不影响绘图主流程。
+    - [ ] 页面与配置映射：页面访问使用 `visio-diagram`；Runtime 配置仅统计 `visioMcpModes=bundled|custom`。
+    - [ ] AI 请求映射：计划生成继续复用文本模型 `ai_request`，不新增重复 Token 事件；Visio MCP 绘制不计作 AI 请求。
+    - [ ] 全链路同步：同步修改 Worker `CONFIG_USAGE_FIELDS`、统计聚合、Dashboard 配置用量分组和客户端映射，并补齐新增字段的聚合/查询验证。
+    - [ ] 子模块提交：client、worker、dashboard 的等价恢复和 Visio 映射验证全部通过后独立 Git 提交，再勾选 M08-B。
+  - [ ] M08-C：分层端到端验收
+    - [ ] CI 层：运行 M01-M08 回归、Electron SQLite 冒烟、Sidecar MCP 初始化/工具发现、Renderer 构建和安装包资源校验，不依赖 GitHub Runner 安装 Microsoft Visio。
+    - [ ] Visio 实机层：在安装 Microsoft Visio Desktop 的 Windows x64 上，从正式安装包完成组件自检、中文需求、计划编辑、PNG 预览、VSDX 生成/打开、重新生成和重启 Sidecar。
+    - [ ] 产物层：校验 VSDX/PNG 非空、manifest 节点/连线/页面统计一致、中文路径可用、计划修订正确、失败时保留上一版活动产物。
+    - [ ] 生命周期层：取消与退出后无残留 Visio MCP 子进程；成功和失败后无未关闭 Visio 文档；应用重启能恢复工作区且不会把旧 running 任务当作仍在执行。
+    - [ ] 安装层：NSIS、ZIP、MSI 至少各验证 Sidecar 存在与可启动；无 Python 环境的新 Windows 用户只需已安装 Microsoft Visio 即可绘图。
+    - [ ] 子模块提交：自动验收记录和 Visio 实机验收记录完成后独立 Git 提交，再勾选 M08-C。
+  - [ ] 完成门槛：M08-A/M08-B/M08-C 均已勾选，Windows 安装包端到端通过，Analytics 等价能力保留，M01-M08 全回归通过；最后更新 M08 总项并提交验收记录。
 
 ## 提交记录规则
 
