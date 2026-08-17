@@ -77,6 +77,7 @@
 
 - [ ] M08：Windows Sidecar 打包、Analytics 映射和端到端验收
   - [ ] M08-A：Windows Sidecar 构建、打包与发布
+    - 设计基线：按 `VISIO_MCP_M08_A_DESIGN.md` 执行；先完成候选版本冻结 spike，再固化 lock、vendor、打包和 CI，不在验证前追随最新依赖。
     - [ ] 固定上游输入：锁定 `visio-mcp==0.1.2`、Python 3.14.x 和官方 wheel SHA256 `c6720716de0decd6d5a79651af28ce3760434bb6a7606305c834e2afee939f46`。
     - [ ] 冻结技术验证：先完成 `fastmcp + pywin32 + stdio` 冻结冒烟，再固定已验证的 PyInstaller 与 hooks-contrib 版本；使用 console/stdio 模式生成单文件 `visio-mcp.exe`。
     - [ ] 构建元数据：记录版本、平台、架构、上游 URL、SHA256、构建工具版本和依赖清单；随产物保留 visio-mcp MIT 许可证及第三方声明。
