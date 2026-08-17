@@ -1,4 +1,5 @@
 .visio-diagram-page {
+  position: relative;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 16px;
@@ -735,5 +736,361 @@
   .visio-panel-actions.is-split > div,
   .visio-result-actions {
     justify-content: flex-end;
+  }
+}
+
+/* M07：计划编辑、预览和工作流状态 */
+.visio-plan-badges span.is-dirty {
+  color: #a05a00;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.visio-plan-badges span.is-saved {
+  color: #16834a;
+  background: rgba(28, 168, 100, 0.1);
+  border-color: rgba(28, 168, 100, 0.18);
+}
+
+.visio-plan-editor {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.visio-plan-editor-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: #fbfcff;
+  border: 1px solid var(--yb-border-soft);
+  border-radius: 16px;
+}
+
+.visio-editor-field {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 6px;
+}
+
+.visio-editor-field.is-wide {
+  grid-column: span 2;
+}
+
+.visio-editor-field > span,
+.visio-editor-card-meta > span {
+  color: var(--yb-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.visio-editor-field input,
+.visio-editor-field select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px;
+  color: var(--yb-text);
+  background: #eef3fa;
+  border: 1px solid #ccd6e3;
+  border-radius: 10px;
+  outline: none;
+  transition: background-color var(--yb-duration-fast) ease, border-color var(--yb-duration-fast) ease, box-shadow var(--yb-duration-fast) ease;
+}
+
+.visio-editor-field input:focus,
+.visio-editor-field select:focus {
+  background: #ffffff;
+  border-color: rgba(33, 116, 253, 0.58);
+  box-shadow: 0 0 0 3px rgba(33, 116, 253, 0.1);
+}
+
+.visio-editor-field input:disabled,
+.visio-editor-field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+.visio-editor-section {
+  overflow: hidden;
+  background: #fbfcff;
+  border: 1px solid var(--yb-border-soft);
+  border-radius: 16px;
+}
+
+.visio-editor-section > header {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 12px 9px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--yb-border-soft);
+}
+
+.visio-editor-section > header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visio-editor-section h3 {
+  margin: 0;
+  color: var(--yb-text);
+  font-size: 14px;
+}
+
+.visio-editor-section > header span {
+  display: grid;
+  min-width: 25px;
+  height: 25px;
+  place-items: center;
+  color: var(--yb-primary-deep);
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(33, 116, 253, 0.08);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.visio-editor-list {
+  display: grid;
+  max-height: 520px;
+  gap: 8px;
+  overflow: auto;
+  padding: 10px;
+  scrollbar-gutter: stable;
+}
+
+.visio-editor-card {
+  display: grid;
+  grid-template-columns: 120px repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 10px 12px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--yb-border-soft);
+  border-radius: 13px;
+}
+
+.visio-editor-card-meta {
+  display: grid;
+  min-width: 0;
+  align-self: stretch;
+  align-content: center;
+  gap: 5px;
+  grid-row: 1 / span 2;
+}
+
+.visio-editor-card-meta code {
+  overflow: hidden;
+  color: var(--yb-text-soft);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visio-editor-card > .is-wide {
+  grid-column: 2 / span 2;
+}
+
+.visio-editor-card > .text-button {
+  min-height: 38px;
+  align-self: end;
+  justify-self: end;
+  padding: 0 8px;
+}
+
+.visio-editor-card > .text-button.is-danger {
+  color: #b73324;
+}
+
+.visio-editor-card.is-node > .text-button,
+.visio-editor-card.is-edge > .text-button {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.visio-editor-card.is-edge > .visio-editor-field:nth-of-type(3) {
+  grid-column: 2 / span 2;
+}
+
+.visio-editor-card.is-edge > .visio-editor-field:nth-of-type(4) {
+  grid-column: 4;
+  grid-row: 2;
+}
+
+.visio-editor-empty {
+  padding: 24px;
+  color: var(--yb-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.visio-preview-panel {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--yb-border-soft);
+  border-radius: 22px;
+  box-shadow: var(--yb-shadow-sm);
+}
+
+.visio-preview-panel > header {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 16px 12px 20px;
+  border-bottom: 1px solid var(--yb-border-soft);
+}
+
+.visio-preview-panel > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.visio-preview-panel > header span {
+  color: var(--yb-primary-deep);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.visio-preview-panel h3 {
+  margin: 0;
+  color: var(--yb-text);
+  font-size: 16px;
+}
+
+.visio-preview-tabs {
+  display: flex;
+  max-width: 62%;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.visio-preview-tabs button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 11px;
+  color: var(--yb-text-soft);
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--yb-bg);
+  border: 1px solid var(--yb-border-soft);
+  border-radius: 9px;
+}
+
+.visio-preview-tabs button:hover,
+.visio-preview-tabs button.is-active {
+  color: var(--yb-primary-deep);
+  background: rgba(33, 116, 253, 0.08);
+  border-color: rgba(33, 116, 253, 0.2);
+}
+
+.visio-preview-stage {
+  display: grid;
+  min-height: 360px;
+  max-height: 660px;
+  place-items: center;
+  overflow: auto;
+  padding: 20px;
+  background: #f4f7fb;
+}
+
+.visio-preview-stage img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 620px;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.08), 0 12px 30px rgba(36, 48, 72, 0.08);
+}
+
+.visio-preview-empty {
+  display: grid;
+  gap: 6px;
+  color: var(--yb-text-soft);
+  text-align: center;
+}
+
+.visio-preview-empty strong {
+  color: var(--yb-text);
+  font-size: 14px;
+}
+
+.visio-preview-empty span {
+  font-size: 12px;
+}
+
+.visio-leave-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+@media (max-width: 1040px) {
+  .visio-plan-editor-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visio-editor-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visio-editor-card-meta {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .visio-editor-card > .is-wide,
+  .visio-editor-card.is-edge > .visio-editor-field:nth-of-type(3),
+  .visio-editor-card.is-edge > .visio-editor-field:nth-of-type(4) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .visio-editor-card > .text-button,
+  .visio-editor-card.is-node > .text-button,
+  .visio-editor-card.is-edge > .text-button {
+    grid-column: 2;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .visio-plan-editor-overview,
+  .visio-editor-card {
+    grid-template-columns: 1fr;
+  }
+
+  .visio-editor-field.is-wide,
+  .visio-editor-card > .is-wide,
+  .visio-editor-card.is-edge > .visio-editor-field:nth-of-type(3),
+  .visio-editor-card.is-edge > .visio-editor-field:nth-of-type(4),
+  .visio-editor-card > .text-button,
+  .visio-editor-card.is-node > .text-button,
+  .visio-editor-card.is-edge > .text-button {
+    grid-column: 1;
+  }
+
+  .visio-preview-panel > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .visio-preview-tabs {
+    max-width: 100%;
+  }
+
+  .visio-preview-stage {
+    min-height: 260px;
+    padding: 12px;
   }
 }

@@ -39,6 +39,12 @@ test('VisioMcpService completes the MCP lifecycle and serializes tool calls', as
   });
   context.after(() => service.close());
 
+  const stopped = service.getStatus();
+  assert.equal(stopped.phase, 'stopped');
+  assert.equal(stopped.runtime.mode, 'custom');
+  assert.equal(stopped.runtime.supported, true);
+  assert.equal(stopped.runtime.available, true);
+
   const started = await service.start();
   assert.equal(started.phase, 'ready');
   assert.equal(started.server.name, 'yibiao-fake-visio-mcp');

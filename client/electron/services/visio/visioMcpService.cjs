@@ -93,6 +93,7 @@ function createVisioMcpService({
   let intentionalClose = false;
 
   function getStatus() {
+    const visibleRuntime = runtime || runtimeResolver({ app, config: getRuntimeConfig() });
     return {
       phase,
       healthy: phase === 'ready',
@@ -104,7 +105,7 @@ function createVisioMcpService({
       }[phase] || 'Visio MCP 状态未知',
       updated_at: updatedAt,
       last_error: lastError,
-      runtime: publicRuntimeStatus(runtime),
+      runtime: publicRuntimeStatus(visibleRuntime),
       server: client ? {
         ...client.getServerVersion?.(),
         tool_count: toolDefinitions.length,

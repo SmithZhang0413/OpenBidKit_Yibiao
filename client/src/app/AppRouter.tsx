@@ -53,7 +53,7 @@ function AppRouter({ activeSection, developerMode, onDeveloperModeChange, onSect
     case 'business-bid':
       return <BusinessBidPage />;
     case 'visio-diagram':
-      return <VisioDiagramPage />;
+      return <VisioDiagramPage registerLeaveGuard={registerLeaveGuard} />;
     case 'document-knowledge-base':
       return <KnowledgeBasePage />;
     case 'resources':

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { DetailHelpLink, FloatingToolbar, InputWithAction, OfflineLicenseActivationDialog, useAutoAnswer, useToast } from '../../../shared/ui';
 import { showUpdateReadyToast } from '../../../shared/updateToast';
 import type { FloatingToolbarGroup } from '../../../shared/ui';
-import type { AgentModeScenariosConfig, AgentSelfCheckResult, AgentSelfCheckStepStatus, AiRequestMode, ClientConfig, ComponentsConfig, ConfiguredTextModelProvider, FileParserProvider, ImageModelConfig, ImageModelProfiles, ImageModelProvider, ImageModelSize, ImageModelStatus, LicenseRuntimeStatus, TextModelConfig, TextModelProfiles, TextModelProvider, UpdateChannel } from '../../../shared/types';
+import type { AgentModeScenariosConfig, AgentSelfCheckResult, AgentSelfCheckStepStatus, AiRequestMode, ClientConfig, ComponentsConfig, ConfiguredTextModelProvider, FileParserProvider, ImageModelConfig, ImageModelProfiles, ImageModelProvider, ImageModelSize, ImageModelStatus, LicenseRuntimeStatus, TextModelConfig, TextModelProfiles, TextModelProvider, UpdateChannel, VisioMcpComponentStatus, VisioMcpRuntimeConfig } from '../../../shared/types';
 import type { SettingsPageState } from '../types';
 
 type SettingsTab = 'general' | 'text-model' | 'image-model' | 'components' | 'agent' | 'about';
@@ -418,6 +418,37 @@ function componentsFromState(components: SettingsPageState['components']): Compo
   };
 }
 
+
+const defaultVisioMcpConfig: VisioMcpRuntimeConfig = {
+  mode: 'bundled',
+  command: '',
+  args: [],
+  cwd: '',
+  env: {},
+};
+
+function normalizeVisioMcpState(value?: Partial<VisioMcpRuntimeConfig>): VisioMcpRuntimeConfig {
+  return {
+    mode: value?.mode === 'custom' ? 'custom' : 'bundled',
+    command: String(value?.command || ''),
+    args: Array.isArray(value?.args) ? value.args.map((item) => String(item)) : [],
+    cwd: String(value?.cwd || ''),
+    env: { ...(value?.env || {}) },
+  };
+}
+
+function parseVisioMcpArgs(value: string) {
+  return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+}
+
+const visioMcpPhaseLabels: Record<VisioMcpComponentStatus['phase'], string> = {
+  stopped: '未启动',
+  starting: '启动中',
+  ready: '已就绪',
+  closing: '正在关闭',
+  faulted: '异常',
+};
+
 function normalizeImageModelProfiles(profiles?: Partial<ImageModelProfiles>): ImageModelProfiles {
   return imageProviders.reduce((nextProfiles, provider) => ({
     ...nextProfiles,
@@ -546,6 +577,7 @@ const initialState: SettingsPageState = {
     mermaid_concurrency_limit: DEFAULT_COMPONENT_CONCURRENCY_LIMIT,
     html_concurrency_limit: DEFAULT_COMPONENT_CONCURRENCY_LIMIT,
   },
+  visioMcp: { ...defaultVisioMcpConfig, env: {} },
   agentModeScenarios: { ...defaultAgentModeScenarios },
   general: {
     developer_mode: false,
@@ -585,6 +617,9 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
   const [agentSelfCheckStatus, setAgentSelfCheckStatus] = useState<AgentSelfCheckUiStatus>('untested');
   const [agentSelfCheckResult, setAgentSelfCheckResult] = useState<AgentSelfCheckResult | null>(null);
   const [exportingAgentSelfCheckReport, setExportingAgentSelfCheckReport] = useState(false);
+  const [visioMcpStatus, setVisioMcpStatus] = useState<VisioMcpComponentStatus | null>(null);
+  const [visioMcpStatusLoading, setVisioMcpStatusLoading] = useState(false);
+  const [visioMcpAction, setVisioMcpAction] = useState<'self-check' | 'restart' | null>(null);
   const { showToast } = useToast();
   const {
     enabled: agentAutoAnswerEnabled,
@@ -645,6 +680,7 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
         imageModel: activeImageProfile,
         imageModelProfiles,
         components: normalizeComponentsState(config.components),
+        visioMcp: normalizeVisioMcpState(config.visio_mcp),
         agentModeScenarios: normalizeAgentModeScenarios(config.agent_mode_scenarios),
         general: {
           developer_mode: Boolean(config.developer_mode),
@@ -697,13 +733,7 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
       request_mode: activeTextProfile.request_mode,
       image_model: activeImageProfile,
       image_model_profiles: imageModelProfiles,
-      visio_mcp: savedConfig?.visio_mcp || {
-        mode: 'bundled',
-        command: '',
-        args: [],
-        cwd: '',
-        env: {},
-      },
+      visio_mcp: normalizeVisioMcpState(state.visioMcp),
       components: componentsFromState(state.components),
       agent_mode_scenarios: options.includeAgentScenarios ? state.agentModeScenarios : persistedAgentModeScenarios,
       update_channel: state.general.update_channel,
@@ -1137,8 +1167,63 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
     }
   };
 
+  const refreshVisioMcpStatus = async (showFailure = false) => {
+    setVisioMcpStatusLoading(true);
+    try {
+      const status = await window.yibiao.visioDiagram.getComponentStatus();
+      setVisioMcpStatus(status);
+      return status;
+    } catch (error) {
+      if (showFailure) showToast(error instanceof Error ? error.message : '读取 Visio MCP 状态失败', 'error');
+      return null;
+    } finally {
+      setVisioMcpStatusLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'components') void refreshVisioMcpStatus();
+  }, [activeTab]);
+
+  const runVisioMcpSelfCheck = async () => {
+    if (isActiveTabDirty()) {
+      showToast('请先保存组件设置，再运行 Visio MCP 自检', 'info');
+      return;
+    }
+    setVisioMcpAction('self-check');
+    try {
+      const result = await window.yibiao.visioDiagram.runComponentSelfCheck();
+      await refreshVisioMcpStatus();
+      showToast('Visio MCP 自检通过，发现 ' + result.tools.length + ' 个工具', 'success');
+    } catch (error) {
+      await refreshVisioMcpStatus();
+      showToast(error instanceof Error ? error.message : 'Visio MCP 自检失败', 'error');
+    } finally {
+      setVisioMcpAction(null);
+    }
+  };
+
+  const restartVisioMcp = async () => {
+    if (isActiveTabDirty()) {
+      showToast('请先保存组件设置，再重启 Visio MCP', 'info');
+      return;
+    }
+    setVisioMcpAction('restart');
+    try {
+      const status = await window.yibiao.visioDiagram.restartComponent();
+      setVisioMcpStatus(status);
+      showToast('Visio MCP 已重启', 'success');
+    } catch (error) {
+      await refreshVisioMcpStatus();
+      showToast(error instanceof Error ? error.message : 'Visio MCP 重启失败', 'error');
+    } finally {
+      setVisioMcpAction(null);
+    }
+  };
+
   const saveComponentsConfig = async () => {
-    await saveClientConfig(createClientConfig());
+    const saved = await saveClientConfig(createClientConfig());
+    if (saved) await refreshVisioMcpStatus();
   };
 
   const openConfigFolder = async () => {
@@ -1372,7 +1457,13 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
     }
 
     if (activeTab === 'components') {
-      return JSON.stringify(componentsFromState(state.components)) !== JSON.stringify(normalizeComponentsState(savedConfig.components));
+      return JSON.stringify({
+        components: componentsFromState(state.components),
+        visioMcp: normalizeVisioMcpState(state.visioMcp),
+      }) !== JSON.stringify({
+        components: normalizeComponentsState(savedConfig.components),
+        visioMcp: normalizeVisioMcpState(savedConfig.visio_mcp),
+      });
     }
 
     if (activeTab === 'agent') {
@@ -1492,6 +1583,18 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
   const currentImageStatus = imageStatusMeta[imageModelStatus];
   const currentAgentSelfCheckStatus = agentSelfCheckStatusMeta[agentSelfCheckStatus];
   const imageTestTime = formatImageTestTime(state.imageModel.tested_at);
+  const visioMcpRuntime = visioMcpStatus?.runtime;
+  const visioMcpStatusTone = visioMcpStatus?.healthy
+    ? 'normal'
+    : visioMcpStatus?.phase === 'starting' || visioMcpStatus?.phase === 'closing'
+      ? 'checking'
+      : visioMcpStatus?.phase === 'faulted' || visioMcpRuntime?.supported === false || visioMcpRuntime?.available === false
+        ? 'error'
+        : 'untested';
+  const visioMcpPhaseLabel = visioMcpStatus ? visioMcpPhaseLabels[visioMcpStatus.phase] : '待检测';
+  const visioMcpStatusDescription = visioMcpStatus?.message
+    || visioMcpRuntime?.reason
+    || '进入组件设置后会读取本地 Visio MCP 状态。';
   const settingsToolbarGroups: FloatingToolbarGroup[] = canSaveActiveTab
     ? [
         {
@@ -2206,6 +2309,151 @@ function SettingsPage({ onDeveloperModeChange }: SettingsPageProps) {
               />
             </label>
           </div>
+
+          <div className='settings-group-title'>Microsoft Visio MCP</div>
+          <div className={'visio-mcp-status is-' + visioMcpStatusTone}>
+            <div>
+              <strong>Visio MCP 组件</strong>
+              <span>{visioMcpStatusDescription}</span>
+            </div>
+            <em>{visioMcpStatusLoading ? '刷新中' : visioMcpPhaseLabel}</em>
+          </div>
+          <div className='settings-list'>
+            <label className='settings-row'>
+              <div className='settings-row-copy'>
+                <strong>运行方式</strong>
+                <span>内置组件随客户端提供；自定义组件适合本地开发和调试。</span>
+              </div>
+              <select
+                value={state.visioMcp.mode}
+                onChange={(event) => setState((prev) => ({
+                  ...prev,
+                  visioMcp: {
+                    ...prev.visioMcp,
+                    mode: event.target.value as VisioMcpRuntimeConfig['mode'],
+                  },
+                }))}
+              >
+                <option value='bundled'>内置组件</option>
+                <option value='custom'>自定义组件</option>
+              </select>
+            </label>
+            {state.visioMcp.mode === 'custom' && (
+              <>
+                <label className='settings-row'>
+                  <div className='settings-row-copy'>
+                    <strong>启动命令</strong>
+                    <span>填写可执行文件或 PATH 中可用的命令。</span>
+                  </div>
+                  <input
+                    type='text'
+                    value={state.visioMcp.command}
+                    placeholder='例如：python 或 C:\\Tools\\visio-mcp.exe'
+                    onChange={(event) => setState((prev) => ({
+                      ...prev,
+                      visioMcp: { ...prev.visioMcp, command: event.target.value },
+                    }))}
+                  />
+                </label>
+                <label className='settings-row is-textarea'>
+                  <div className='settings-row-copy'>
+                    <strong>启动参数</strong>
+                    <span>每行填写一个参数；不需要参数时留空。</span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={state.visioMcp.args.join('\n')}
+                    placeholder={'例如：\n-m\nvisio_mcp'}
+                    onChange={(event) => setState((prev) => ({
+                      ...prev,
+                      visioMcp: { ...prev.visioMcp, args: parseVisioMcpArgs(event.target.value) },
+                    }))}
+                  />
+                </label>
+                <label className='settings-row'>
+                  <div className='settings-row-copy'>
+                    <strong>工作目录</strong>
+                    <span>可选；相对启动命令和文件读写将以此目录为基准。</span>
+                  </div>
+                  <input
+                    type='text'
+                    value={state.visioMcp.cwd}
+                    placeholder='可选'
+                    onChange={(event) => setState((prev) => ({
+                      ...prev,
+                      visioMcp: { ...prev.visioMcp, cwd: event.target.value },
+                    }))}
+                  />
+                </label>
+              </>
+            )}
+            <div className='settings-row'>
+              <div className='settings-row-copy'>
+                <strong>运行环境</strong>
+                <span>状态来自 Electron Main；修改运行方式后请先保存，再执行自检或重启。</span>
+              </div>
+              <dl className='visio-mcp-runtime-grid'>
+                <div>
+                  <dt>系统支持</dt>
+                  <dd>{visioMcpRuntime ? (visioMcpRuntime.supported ? '支持' : '不支持') : '待检测'}</dd>
+                </div>
+                <div>
+                  <dt>运行时</dt>
+                  <dd>{visioMcpRuntime ? (visioMcpRuntime.available ? '可用' : '不可用') : '待检测'}</dd>
+                </div>
+                <div>
+                  <dt>当前运行</dt>
+                  <dd>{visioMcpRuntime ? (visioMcpRuntime.mode === 'bundled' ? '内置组件' : '自定义组件') : '—'}</dd>
+                </div>
+                <div>
+                  <dt>服务版本</dt>
+                  <dd>{visioMcpStatus?.server?.version || '—'}</dd>
+                </div>
+                <div>
+                  <dt>工具数量</dt>
+                  <dd>{visioMcpStatus?.server?.tool_count ?? '—'}</dd>
+                </div>
+              </dl>
+            </div>
+            {(visioMcpStatus?.last_error || visioMcpRuntime?.reason) && (
+              <div className='settings-row'>
+                <div className='settings-row-copy'>
+                  <strong>最后信息</strong>
+                  <span>组件不可用时可据此检查安装、命令或工作目录。</span>
+                </div>
+                <span className='settings-readonly-value is-error'>
+                  {visioMcpStatus?.last_error || visioMcpRuntime?.reason}
+                </span>
+              </div>
+            )}
+            <div className='settings-row'>
+              <div className='settings-row-copy'>
+                <strong>组件操作</strong>
+                <span>自检会启动组件并读取 MCP 工具；重启用于应用已保存的 Runtime 配置。</span>
+              </div>
+              <div className='settings-action-cell visio-mcp-actions'>
+                <button
+                  type='button'
+                  className='inline-action'
+                  disabled={Boolean(visioMcpAction) || activeTabDirty}
+                  onClick={() => { void runVisioMcpSelfCheck(); }}
+                >
+                  {visioMcpAction === 'self-check' && <span className='inline-spinner' aria-hidden='true' />}
+                  {visioMcpAction === 'self-check' ? '自检中' : '自检'}
+                </button>
+                <button
+                  type='button'
+                  className='inline-action'
+                  disabled={Boolean(visioMcpAction) || activeTabDirty}
+                  onClick={() => { void restartVisioMcp(); }}
+                >
+                  {visioMcpAction === 'restart' && <span className='inline-spinner' aria-hidden='true' />}
+                  {visioMcpAction === 'restart' ? '重启中' : '重启'}
+                </button>
+              </div>
+            </div>
+          </div>
+
         </section>
       )}
 

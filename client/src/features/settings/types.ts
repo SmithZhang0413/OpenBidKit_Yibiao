@@ -1,4 +1,4 @@
-import type { AgentModeScenariosConfig, ComponentsConfig, ConfiguredTextModelProvider, ImageModelConfig, ImageModelProfiles, TextModelConfig, TextModelProfiles, UpdateChannel } from '../../shared/types';
+import type { AgentModeScenariosConfig, ComponentsConfig, ConfiguredTextModelProvider, ImageModelConfig, ImageModelProfiles, TextModelConfig, TextModelProfiles, UpdateChannel, VisioMcpRuntimeConfig } from '../../shared/types';
 
 export interface SettingsPageState {
   textModel: Omit<TextModelConfig, 'context_length_limit' | 'concurrency_limit'> & {
@@ -15,6 +15,7 @@ export interface SettingsPageState {
     mermaid_concurrency_limit: number | '';
     html_concurrency_limit: number | '';
   };
+  visioMcp: VisioMcpRuntimeConfig;
   agentModeScenarios: AgentModeScenariosConfig;
   general: {
     developer_mode: boolean;
