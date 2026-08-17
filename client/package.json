@@ -17,6 +17,9 @@
     "generate-build-attestation": "node scripts/generate-build-attestation.cjs",
     "prepare-agent-tools": "node scripts/prepare-agent-tools.cjs",
     "verify-agent-tools": "node scripts/verify-agent-tools.cjs",
+    "prepare-visio-mcp": "node scripts/prepare-visio-mcp.cjs",
+    "verify-visio-mcp": "node scripts/verify-visio-mcp.cjs",
+    "verify-packaged-visio-mcp": "node scripts/verify-packaged-visio-mcp.cjs",
     "smoke:electron-native": "electron scripts/electron-native-smoke.cjs",
     "start": "electron ."
   },
@@ -48,6 +51,13 @@
         {
           "from": "vendor/agent-tools/win32-${arch}",
           "to": "agent-tools/win32-${arch}",
+          "filter": [
+            "**/*"
+          ]
+        },
+        {
+          "from": "vendor/visio-mcp/win32-${arch}",
+          "to": "visio-mcp/win32-${arch}",
           "filter": [
             "**/*"
           ]

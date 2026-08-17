@@ -26,6 +26,7 @@ client/release/
 
 # 智能体命令工具下载临时目录
 client/.tmp-agent-tools-download/
+client/.tmp-visio-mcp-build/
 
 # 临时和缓存文件
 *.tmp

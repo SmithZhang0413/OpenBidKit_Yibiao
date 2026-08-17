@@ -30,20 +30,20 @@ PyPI 元数据给出的 GitHub 仓库当前不可访问。Release 构建只信�
 
 ### 2.2 首轮候选工具链
 
-- CPython `3.14.6` Windows x64 常规 GIL 构建
+- CPython `3.14.7` Windows x64 常规 GIL 构建
 - PyInstaller `6.22.1`
 - pyinstaller-hooks-contrib `2026.6`
 - MCP SDK `1.27.0`
 - pywin32 `311`
 
-这些是冻结 spike 的候选，不是最终锁定。只有真实 `initialize`、`ping`、`listTools`、无 COM 工具调用和关闭无残留验证通过后，才写入正式 lock、manifest 和 CI。正式实现阶段不得临时追随最新版。
+以上版本已通过真实 `initialize`、`ping`、`listTools`、无 COM 工具调用和关闭无残留冻结验证，并已写入正式 lock、manifest 和 CI。正式构建不得临时追随最新版。
 
 ## 3. 构建架构
 
 ```text
 官方 wheel + 固定 SHA256
         ↓
-隔离 Python 3.14.6 环境 + 全量哈希锁
+隔离 Python 3.14.7 环境 + 全量哈希锁
         ↓
 PyInstaller onefile / console / stdio / no UPX
         ↓
@@ -184,7 +184,7 @@ Windows Release job 顺序：
 
 ## 8. 实施与提交边界
 
-1. 冻结 spike：确认最终工具链和 stdio 生命周期，不发布 vendor。
+1. 冻结 spike：确认最终工具链和 stdio 生命周期，不发布 vendor。（已完成）
 2. 固化 lock、spec、入口和许可证生成。
 3. 完成 prepare 和源码 verifier。
 4. 原子发布 vendor，并验证 bundled 自检。
@@ -197,13 +197,13 @@ Windows Release job 顺序：
 
 ## 9. 当前结论
 
-设计已具备直接开工条件。下一步是冻结技术 spike；候选版本通过前，不修改正式 vendor、package.json 或 Release CI。
+冻结技术 spike 已完成，实施以 CPython 3.14.7、PyInstaller 6.22.1、hooks-contrib 2026.6、MCP SDK 1.27.0 和 pywin32 311 为固定基线。
 
 ## 10. 参考依据
 
 - [visio-mcp 0.1.2（PyPI）](https://pypi.org/project/visio-mcp/0.1.2/)
 - [visio-mcp 0.1.2 官方元数据与文件哈希](https://pypi.org/pypi/visio-mcp/0.1.2/json)
-- [Python 3.14.6 官方发布页](https://www.python.org/downloads/release/python-3146/)
+- [Python 3.14.7 官方发布页](https://www.python.org/downloads/release/python-3147/)
 - [PyInstaller 官方包信息](https://pypi.org/project/pyinstaller/)
 - [PyInstaller 官方变更记录](https://pyinstaller.org/en/stable/CHANGES.html)
 - [PyInstaller 官方安装与 hooks 同步说明](https://pyinstaller.org/en/stable/installation.html)

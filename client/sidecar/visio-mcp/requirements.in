@@ -1,0 +1,5 @@
+visio-mcp @ https://files.pythonhosted.org/packages/68/2a/fabd7de52d67d98f5c02d88c6b46cfaf7c0ccba5600ef245341403cb0b2e/visio_mcp-0.1.2-py3-none-any.whl
+mcp[cli]==1.27.0
+pywin32==311
+pyinstaller==6.22.1
+pyinstaller-hooks-contrib==2026.6

@@ -76,18 +76,19 @@
   - 验证记录：计划草稿专项测试 5/5、M01-M07 回归 18/18、`node --check`、`npm run build`、Electron 原生模块与 SQLite 中文路径冒烟均通过；隔离 Electron 验证双页 PNG 预览、计划编辑、未保存离开保护和组件状态卡。
 
 - [ ] M08：Windows Sidecar 打包、Analytics 映射和端到端验收
-  - [ ] M08-A：Windows Sidecar 构建、打包与发布
+  - [x] M08-A：Windows Sidecar 构建、打包与发布
     - 设计基线：按 `VISIO_MCP_M08_A_DESIGN.md` 执行；先完成候选版本冻结 spike，再固化 lock、vendor、打包和 CI，不在验证前追随最新依赖。
-    - [ ] 固定上游输入：锁定 `visio-mcp==0.1.2`、Python 3.14.x 和官方 wheel SHA256 `c6720716de0decd6d5a79651af28ce3760434bb6a7606305c834e2afee939f46`。
-    - [ ] 冻结技术验证：先完成 `fastmcp + pywin32 + stdio` 冻结冒烟，再固定已验证的 PyInstaller 与 hooks-contrib 版本；使用 console/stdio 模式生成单文件 `visio-mcp.exe`。
-    - [ ] 构建元数据：记录版本、平台、架构、上游 URL、SHA256、构建工具版本和依赖清单；随产物保留 visio-mcp MIT 许可证及第三方声明。
-    - [ ] 准备脚本：将构建结果原子发布到 `vendor/visio-mcp/win32-x64/visio-mcp.exe`，不复用用户全局 Python 环境作为运行依赖。
-    - [ ] 源码侧校验：检查 EXE、VERSION、manifest、许可证和 SHA256，并通过真实 MCP initialize/listTools 自检 STDIO 协议。
-    - [ ] 安装包校验：确认安装包只携带目标 `win32-x64` Sidecar，路径与 `visioMcpRuntime` 的 packaged 解析完全一致。
-    - [ ] 客户端打包：在 `package.json` 增加准备/验证命令和 Windows `extraResources`；Windows 第一版只发布 x64，macOS 包不写入 Visio Sidecar。
-    - [ ] Release CI：Windows job 使用固定 Python 3.14，在 electron-builder 前完成构建、哈希和协议校验，在 NSIS/ZIP/MSI 后执行 packaged verify；任一失败均阻止发布。
-    - [ ] 平台边界：macOS job 保持现状并验证不包含 Visio Sidecar；macOS Renderer 明确展示“不支持 Microsoft Visio”。
-    - [ ] 子模块提交：脚本、打包配置和 Release CI 验证全部通过后独立 Git 提交，再勾选 M08-A。
+    - [x] 固定上游输入：锁定 `visio-mcp==0.1.2`、Python 3.14.x 和官方 wheel SHA256 `c6720716de0decd6d5a79651af28ce3760434bb6a7606305c834e2afee939f46`。
+    - [x] 冻结技术验证：先完成 `fastmcp + pywin32 + stdio` 冻结冒烟，再固定已验证的 PyInstaller 与 hooks-contrib 版本；使用 console/stdio 模式生成单文件 `visio-mcp.exe`。
+    - [x] 构建元数据：记录版本、平台、架构、上游 URL、SHA256、构建工具版本和依赖清单；随产物保留 visio-mcp MIT 许可证及第三方声明。
+    - [x] 准备脚本：将构建结果原子发布到 `vendor/visio-mcp/win32-x64/visio-mcp.exe`，不复用用户全局 Python 环境作为运行依赖。
+    - [x] 源码侧校验：检查 EXE、VERSION、manifest、许可证和 SHA256，并通过真实 MCP initialize/listTools 自检 STDIO 协议。
+    - [x] 安装包校验：确认安装包只携带目标 `win32-x64` Sidecar，路径与 `visioMcpRuntime` 的 packaged 解析完全一致。
+    - [x] 客户端打包：在 `package.json` 增加准备/验证命令和 Windows `extraResources`；Windows 第一版只发布 x64，macOS 包不写入 Visio Sidecar。
+    - [x] Release CI：Windows job 使用固定 Python 3.14，在 electron-builder 前完成构建、哈希和协议校验，在 NSIS/ZIP/MSI 后执行 packaged verify；任一失败均阻止发布。
+    - [x] 平台边界：macOS job 保持现状并验证不包含 Visio Sidecar；macOS Renderer 明确展示“不支持 Microsoft Visio”。
+    - [x] 子模块提交：脚本、打包配置和 Release CI 验证全部通过后独立 Git 提交，再勾选 M08-A。
+    - 验证记录：固定 CPython 3.14.7、PyInstaller 6.22.1、hooks-contrib 2026.6、MCP 1.27.0 和 pywin32 311；正式 EXE SHA256 为 `9f3e0c1f3e7249795146b2247501132d36948a0889cbfb19d85d13cfaee256df`，46 个依赖均有锁定哈希，真实 stdio 自检发现 40 个工具和 22 类图；源码与 `win-unpacked/resources` verifier、NSIS/ZIP/MSI 三产物门禁、macOS absent 夹具、M01-M07 回归 18/18、计划草稿 5/5、中文路径存储冒烟、Electron 原生模块和 Renderer build 均通过。
   - [ ] M08-B：恢复 Analytics 基线并增加 Visio 映射
     - [ ] 等价恢复客户端 `app_open`、`page_view`、`config_usage`、`ai_request`、`resource_click`、`agent_runtime` 采集调用，保持 Worker 现有允许事件、聚合字段和 Dashboard 展示能力。
     - [ ] 隐私边界：不采集图表需求正文、标题、DiagramPlan、文件路径、MCP 参数、API Key 或本地环境变量；埋点失败不影响绘图主流程。

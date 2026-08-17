@@ -1,0 +1,8 @@
+visio-mcp=0.1.2
+python=3.14.7
+pyinstaller=6.22.1
+pyinstaller-hooks-contrib=2026.6
+mcp=1.27.0
+pywin32=311
+platform=win32
+arch=x64

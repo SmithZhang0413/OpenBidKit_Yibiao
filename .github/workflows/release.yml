@@ -102,8 +102,19 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
 
+      - name: Setup Python for Visio MCP
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.7'
+          architecture: x64
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Prepare and verify Visio MCP Sidecar
+        run: |
+          npm run prepare-visio-mcp -- --python python
+          npm run verify-visio-mcp
 
       - name: Verify Agent tools
         run: node scripts/verify-agent-tools.cjs --platform win32 --arch x64
@@ -146,6 +157,9 @@ jobs:
 
       - name: Verify packaged Agent tools
         run: node scripts/verify-packaged-agent-tools.cjs --platform win32 --arch x64 --release release
+
+      - name: Verify packaged Visio MCP Sidecar
+        run: npm run verify-packaged-visio-mcp -- --platform win32 --arch x64 --release release --require-artifacts
 
       - name: Upload release assets
         env:
@@ -304,6 +318,9 @@ jobs:
 
       - name: Verify packaged Agent tools
         run: node scripts/verify-packaged-agent-tools.cjs --platform darwin --arch ${{ matrix.arch }} --release release
+
+      - name: Verify packaged Visio MCP absence
+        run: npm run verify-packaged-visio-mcp -- --platform darwin --arch ${{ matrix.arch }} --release release
 
       - name: Stage macOS release assets
         uses: actions/upload-artifact@v4

@@ -1,0 +1,12 @@
+[
+  "create_diagram",
+  "batch_draw_shapes",
+  "batch_connect_shapes",
+  "set_shape_text",
+  "save_document_as",
+  "list_pages",
+  "export_page_as_image",
+  "get_page_summary",
+  "close_document",
+  "list_diagram_types"
+]
