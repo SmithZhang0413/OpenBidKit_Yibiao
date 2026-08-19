@@ -79,6 +79,13 @@ function connectorShapeId(item) {
   return item?.shape_id ?? item?.connector_id ?? item?.id ?? null;
 }
 
+function isVisioRpcUnavailableError(error) {
+  const message = String(error?.message || error || '');
+  return message.includes('-2147023174')
+    || /0x800706ba/i.test(message)
+    || /RPC\s*(?:服务器不可用|server is unavailable)/i.test(message);
+}
+
 async function assertNonEmptyFile(filePath) {
   const stat = await fs.promises.stat(filePath);
   if (!stat.isFile() || stat.size <= 0) {
@@ -126,11 +133,20 @@ function createVisioDiagramRenderer({ visioMcpService } = {}) {
       assertRenderTools(tools, { needsConnectorLabels: plan.edges.some((edge) => edge.label) });
 
       progress('document', '正在创建 Visio 图表文档', 12);
-      const createResult = await visioMcpService.callTool(
+      const createDocument = () => visioMcpService.callTool(
         'create_diagram',
         { diagram_type: plan.diagram_type },
         { signal },
       );
+      let createResult;
+      try {
+        createResult = await createDocument();
+      } catch (error) {
+        if (!isVisioRpcUnavailableError(error) || signal?.aborted) throw error;
+        progress('document', '检测到 Visio 已被关闭，正在重新连接并创建文档', 12);
+        await visioMcpService.restart();
+        createResult = await createDocument();
+      }
       const createPayload = parseToolJson(createResult, 'create_diagram');
       documentCreated = true;
       documentName = extractDocumentName(createPayload);

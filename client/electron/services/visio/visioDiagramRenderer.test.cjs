@@ -39,8 +39,9 @@ function toolResult(value) {
   return { content: [{ type: 'text', text: JSON.stringify(value) }] };
 }
 
-function createFakeVisioService({ failAt = '' } = {}) {
+function createFakeVisioService({ failAt = '', rpcUnavailableOnce = false } = {}) {
   const calls = [];
+  let createAttempts = 0;
   const standard = {
     stencils: [{ file: 'BASFLO_M.VSSX' }],
     shapes: [
@@ -52,6 +53,9 @@ function createFakeVisioService({ failAt = '' } = {}) {
 
   return {
     calls,
+    async restart() {
+      calls.push({ name: 'restart', args: {} });
+    },
     async listTools() {
       return [...REQUIRED_RENDER_TOOLS, 'set_shape_text'].map((name) => ({ name }));
     },
@@ -59,6 +63,12 @@ function createFakeVisioService({ failAt = '' } = {}) {
       calls.push({ name, args });
       if (name === failAt) throw new Error(`模拟失败：${name}`);
       if (name === 'create_diagram') {
+        createAttempts += 1;
+        if (rpcUnavailableOnce && createAttempts === 1) {
+          const error = new Error("(-2147023174, 'RPC 服务器不可用。', None, None)");
+          error.code = 'VISIO_MCP_TOOL_ERROR';
+          throw error;
+        }
         return toolResult({ document: { name: 'Drawing1' }, standard });
       }
       if (name === 'batch_draw_shapes') {
@@ -173,6 +183,28 @@ test('renderer creates a complete version directory and connector labels', async
   assert.equal(service.calls.filter((call) => call.name === 'set_shape_text').length, 2);
   assert.equal(service.calls.at(-1).name, 'close_document');
   assert.equal(service.calls.at(-1).args.doc_name, 'diagram.vsdx');
+});
+
+test('renderer restarts the sidecar once when create_diagram finds a closed Visio RPC server', async (context) => {
+  const baseDirectory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'yibiao-visio-rpc-recovery-'));
+  context.after(() => fs.promises.rm(baseDirectory, { recursive: true, force: true }));
+  const service = createFakeVisioService({ rpcUnavailableOnce: true });
+  const renderer = createVisioDiagramRenderer({ visioMcpService: service });
+  const progressMessages = [];
+
+  const result = await renderer.render(createPlan(), {
+    outputDir: path.join(baseDirectory, 'revision-rpc-recovery'),
+    onProgress: ({ message }) => progressMessages.push(message),
+  });
+
+  assert.equal(result.manifest.node_count, 6);
+  assert.equal(service.calls.filter((call) => call.name === 'create_diagram').length, 2);
+  assert.equal(service.calls.filter((call) => call.name === 'restart').length, 1);
+  assert.deepEqual(
+    service.calls.filter((call) => call.name === 'create_diagram' || call.name === 'restart').map((call) => call.name),
+    ['create_diagram', 'restart', 'create_diagram'],
+  );
+  assert.ok(progressMessages.includes('检测到 Visio 已被关闭，正在重新连接并创建文档'));
 });
 
 test('renderer removes temporary output when rendering fails', async (context) => {
