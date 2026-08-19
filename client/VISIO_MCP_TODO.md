@@ -99,6 +99,7 @@
   - [ ] M08-C：分层端到端验收
     - [ ] CI 层：运行 M01-M08 回归、Electron SQLite 冒烟、Sidecar MCP 初始化/工具发现、Renderer 构建和安装包资源校验，不依赖 GitHub Runner 安装 Microsoft Visio。
     - [ ] Visio 实机层：在安装 Microsoft Visio Desktop 的 Windows x64 上，从正式安装包完成组件自检、中文需求、计划编辑、PNG 预览、VSDX 生成/打开、重新生成和重启 Sidecar。
+      - [x] Office 15 组织结构图缺陷回归（2026-08-19）：确认 `ORGCH_M.VSSX` 智能 Master 的 `Shape.Text` 会触发“该动作的目标对象不合适”，`OrgC11` 接管的 `AutoConnect` 还会超时；Renderer 对 `org_chart` 改用可编辑几何节点和显式 Dynamic connector，失败恢复保存后按新文档名关闭。正式 Sidecar `9f3e0c1f3e7249795146b2247501132d36948a0889cbfb19d85d13cfaee256df` 冷启动实机回归通过，4 节点、3 连线、VSDX 123433 bytes、PNG 11648 bytes，预览中文和爪形布局正确。
     - [ ] 产物层：校验 VSDX/PNG 非空、manifest 节点/连线/页面统计一致、中文路径可用、计划修订正确、失败时保留上一版活动产物。
     - [ ] 生命周期层：取消与退出后无残留 Visio MCP 子进程；成功和失败后无未关闭 Visio 文档；应用重启能恢复工作区且不会把旧 running 任务当作仍在执行。
     - [ ] 安装层：NSIS、ZIP、MSI 至少各验证 Sidecar 存在与可启动；无 Python 环境的新 Windows 用户只需已安装 Microsoft Visio 即可绘图。

@@ -6,7 +6,7 @@ const test = require('node:test');
 const { layoutDiagramPlan } = require('./visioDiagramLayout.cjs');
 const { validateDiagramPlan } = require('./visioDiagramPlan.cjs');
 const { createVisioDiagramRenderer, parseToolJson } = require('./visioDiagramRenderer.cjs');
-const { REQUIRED_RENDER_TOOLS } = require('./visioMcpToolAdapter.cjs');
+const { buildBatchConnections, buildBatchShapes, REQUIRED_RENDER_TOOLS } = require('./visioMcpToolAdapter.cjs');
 
 function createPlan() {
   return {
@@ -127,6 +127,28 @@ test('layoutDiagramPlan produces deterministic branching positions', () => {
   assert.notEqual(approved.column, rejected.column);
 });
 
+test('org chart uses deterministic geometric nodes instead of Office add-on smart shapes', () => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, 'testing', 'sample-org-chart-plan.json'), 'utf-8'));
+  const plan = validateDiagramPlan(fixture);
+  const shapes = buildBatchShapes(plan, layoutDiagramPlan(plan), {});
+
+  assert.equal(shapes.length, plan.nodes.length);
+  assert.ok(shapes.every((shape) => shape.type === 'rectangle'));
+  assert.ok(shapes.every((shape) => !('master_name' in shape) && !('stencil_name' in shape)));
+  assert.equal(shapes[0].fill_color, 'RGB(221,235,247)');
+  assert.equal(shapes[1].fill_color, 'RGB(242,242,242)');
+
+  const connections = buildBatchConnections(plan);
+  assert.ok(connections.every((connection) => connection.connector_master === 'Dynamic connector'));
+  assert.ok(connections.every((connection) => connection.connector_stencil === 'BASFLO_M.VSSX'));
+
+  const bidirectional = buildBatchConnections({
+    ...plan,
+    edges: [{ id: 'bidirectional', from: plan.nodes[0].id, to: plan.nodes[1].id, kind: 'bidirectional' }],
+  });
+  assert.equal(bidirectional[0].connector_master, 'Dynamic connector');
+});
+
 test('renderer creates a complete version directory and connector labels', async (context) => {
   const baseDirectory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'yibiao-visio-中文-'));
   context.after(() => fs.promises.rm(baseDirectory, { recursive: true, force: true }));
@@ -166,4 +188,19 @@ test('renderer removes temporary output when rendering fails', async (context) =
   assert.deepEqual(leftovers, []);
   assert.equal(service.calls.at(-1).name, 'close_document');
   assert.equal(service.calls.at(-1).args.doc_name, 'diagram.vsdx');
+});
+
+test('renderer closes a recovery document by its post-SaveAs name', async (context) => {
+  const baseDirectory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'yibiao-visio-recovery-name-'));
+  context.after(() => fs.promises.rm(baseDirectory, { recursive: true, force: true }));
+  const service = createFakeVisioService({ failAt: 'batch_connect_shapes' });
+  const renderer = createVisioDiagramRenderer({ visioMcpService: service });
+
+  await assert.rejects(
+    renderer.render(createPlan(), { outputDir: path.join(baseDirectory, 'revision-0003') }),
+    /模拟失败/,
+  );
+
+  const closeCall = service.calls.find((call) => call.name === 'close_document');
+  assert.equal(closeCall.args.doc_name, 'diagram.vsdx');
 });

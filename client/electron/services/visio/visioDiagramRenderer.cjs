@@ -267,10 +267,12 @@ function createVisioDiagramRenderer({ visioMcpService } = {}) {
       if (documentCreated) {
         if (!documentSaved) {
           try {
-            await visioMcpService.callTool('save_document_as', {
+            const failedSaveResult = await visioMcpService.callTool('save_document_as', {
               file_path: path.join(temporaryDirectory, `failed-diagram-${renderId}.vsdx`),
               doc_name: documentName,
             });
+            const failedSavePayload = parseToolJson(failedSaveResult, 'save_document_as');
+            documentName = extractDocumentName(failedSavePayload) || documentName;
             documentSaved = true;
           } catch {}
         }

@@ -54,7 +54,12 @@ async function main() {
   const runtimeConfig = options.command
     ? { mode: 'custom', command: options.command, args: options.args }
     : { mode: 'bundled' };
-  const visioMcpService = createVisioMcpService({ app, getRuntimeConfig: () => runtimeConfig });
+  const logger = {
+    write(event, payload) {
+      process.stderr.write(`[visio-mcp:${event}] ${JSON.stringify(payload)}\n`);
+    },
+  };
+  const visioMcpService = createVisioMcpService({ app, getRuntimeConfig: () => runtimeConfig, logger });
   const renderer = createVisioDiagramRenderer({ visioMcpService });
 
   try {

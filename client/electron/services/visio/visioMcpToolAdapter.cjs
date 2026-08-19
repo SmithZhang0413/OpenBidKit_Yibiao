@@ -36,6 +36,8 @@ const STYLE_PALETTE = Object.freeze({
   },
 });
 
+const ORG_CHART_PRIMARY_KINDS = new Set(['executive', 'manager']);
+
 const DIAGRAM_PROFILES = Object.freeze({
   flowchart: {
     defaultShape: ['Process', 'BASFLO_M.VSSX'],
@@ -74,7 +76,8 @@ const DIAGRAM_PROFILES = Object.freeze({
       assistant: ['Assistant', 'ORGCH_M.VSSX'],
       staff: ['Staff', 'ORGCH_M.VSSX'],
     },
-    dependencyConnector: ['Dotted-line report', 'ORGCH_M.VSSX'],
+    defaultConnector: ['Dynamic connector', 'BASFLO_M.VSSX'],
+    dependencyConnector: ['Dotted line', 'BLOCK_M.VSSX'],
   },
   block_diagram: {
     defaultShape: ['Box', 'BLOCK_M.VSSX'],
@@ -138,15 +141,30 @@ function resolveNodeMaster(diagramType, standard, kind) {
 
 function resolveConnector(diagramType, edge) {
   const profile = DIAGRAM_PROFILES[diagramType];
-  let connector;
-  if (edge.kind === 'dependency') connector = profile?.dependencyConnector;
-  if (edge.kind === 'bidirectional') connector = profile?.bidirectionalConnector;
+  let connector = profile?.defaultConnector;
+  if (edge.kind === 'dependency' && profile?.dependencyConnector) connector = profile.dependencyConnector;
+  if (edge.kind === 'bidirectional' && profile?.bidirectionalConnector) connector = profile.bidirectionalConnector;
   if (!connector) return {};
   return { connector_master: connector[0], connector_stencil: connector[1] };
 }
 
 function buildBatchShapes(plan, layout, standard) {
   return layout.nodes.map((node) => {
+    if (plan.diagram_type === 'org_chart') {
+      // Office 15 的 OrgC11 加载项会异步替换组织结构图智能 Master，COM 无法稳定持有返回对象。
+      // 使用原生几何节点和显式连接线，保持 VSDX 可编辑，同时让 Renderer 行为可确定。
+      const role = node.style_role || (ORG_CHART_PRIMARY_KINDS.has(normalizeKind(node.kind)) ? 'primary' : 'secondary');
+      return {
+        id: node.id,
+        type: 'rectangle',
+        x1: node.x - (node.width / 2),
+        y1: node.y - (node.height / 2),
+        x2: node.x + (node.width / 2),
+        y2: node.y + (node.height / 2),
+        text: node.text,
+        ...(STYLE_PALETTE[role] || STYLE_PALETTE.secondary),
+      };
+    }
     const master = resolveNodeMaster(plan.diagram_type, standard, node.kind);
     const shape = {
       id: node.id,

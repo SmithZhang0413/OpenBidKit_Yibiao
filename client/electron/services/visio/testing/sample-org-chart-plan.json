@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "title": "知识库管理模块爪子图",
+  "diagram_type": "org_chart",
+  "page": {
+    "name": "知识库管理",
+    "orientation": "portrait"
+  },
+  "groups": [],
+  "nodes": [
+    {
+      "id": "knowledge_base_management",
+      "text": "知识库管理",
+      "kind": "manager",
+      "row": 0,
+      "column": 1,
+      "style_role": "primary"
+    },
+    {
+      "id": "document_management",
+      "text": "文档管理",
+      "kind": "position",
+      "row": 1,
+      "column": 0,
+      "style_role": "secondary"
+    },
+    {
+      "id": "category_management",
+      "text": "分类管理",
+      "kind": "position",
+      "row": 1,
+      "column": 1,
+      "style_role": "secondary"
+    },
+    {
+      "id": "full_text_search",
+      "text": "全文检索",
+      "kind": "position",
+      "row": 1,
+      "column": 2,
+      "style_role": "secondary"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_kb_doc",
+      "from": "knowledge_base_management",
+      "to": "document_management",
+      "kind": "normal"
+    },
+    {
+      "id": "edge_kb_cat",
+      "from": "knowledge_base_management",
+      "to": "category_management",
+      "kind": "normal"
+    },
+    {
+      "id": "edge_kb_search",
+      "from": "knowledge_base_management",
+      "to": "full_text_search",
+      "kind": "normal"
+    }
+  ],
+  "notes": [
+    "呈现知识库管理模块下三个子功能的爪形结构"
+  ]
+}
